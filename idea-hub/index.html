@@ -1,25 +1,25 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Idea Hub | QuoteCraft Studio</title><meta name="description" content="Idea Hub — a community space for practical ideas, questions, and projects.">
-<style>
-:root{color-scheme:dark;font-family:system-ui,-apple-system,Segoe UI,sans-serif}*{box-sizing:border-box}
-body{margin:0;background:#101827;color:#f1f5f9;line-height:1.6}a{color:#93c5fd}
-header,main,footer{max-width:920px;margin:auto;padding:24px}header{display:flex;justify-content:space-between;gap:16px;align-items:center}
-.logo{font-weight:800;color:#93c5fd;text-decoration:none}.badge{background:#243653;padding:5px 12px;border-radius:30px;font-size:.85rem}
-.hero{padding:40px 0 20px}h1{font-size:clamp(2rem,6vw,3.5rem);line-height:1.15;margin:0 0 16px}h2{font-size:1.35rem}
-p{color:#cbd5e1}.notice{background:#1e293b;border-left:4px solid #60a5fa;padding:18px;border-radius:8px;margin:25px 0}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
-.card{border:1px solid #334155;border-radius:14px;padding:20px;background:#182336}.card h3{margin-top:0}
-footer{border-top:1px solid #334155;color:#cbd5e1;font-size:.9rem}
-</style></head><body>
-<header><a class="logo" href="../">QuoteCraft Studio</a><span class="badge">Idea Hub · Preview</span></header>
-<main><section class="hero"><h1>Welcome to Idea Hub</h1><p>A place to share practical ideas, ask questions, and learn from each other.</p></section>
-<section class="notice" aria-label="Project status"><strong>We're building Idea Hub.</strong><p>Discussions, accounts, replies and moderation are not available yet. This preview does not collect personal information or accept posts.</p></section>
-<section aria-labelledby="topics"><h2 id="topics">Planned discussion spaces</h2><div class="grid">
-<article class="card"><h3>💡 Ideas & inventions</h3><p>Share useful concepts and improvements.</p></article>
-<article class="card"><h3>🛠️ Projects & DIY</h3><p>Discuss repairs, making things, and practical solutions.</p></article>
-<article class="card"><h3>💻 Technology & apps</h3><p>Talk about useful software and digital tools.</p></article>
-<article class="card"><h3>❓ Questions & help</h3><p>Learn together and help solve everyday problems.</p></article>
-</div></section></main>
-<footer>Idea Hub by QuoteCraft Studio · Preview only. No sign-in or posting is active.</footer>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Idea Hub | QuoteCraft Studio</title>
+<meta name="description" content="A community for practical ideas, inventions, DIY projects, technology and helpful questions. Share what you are making and learn together.">
+<meta name="robots" content="index,follow">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' https://idea-hub-github.quotecraft300.workers.dev; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests">
+<meta name="referrer" content="no-referrer">
+<meta property="og:title" content="Idea Hub | QuoteCraft Studio"><meta property="og:description" content="Practical ideas. Shared projects. Helpful conversations."><meta property="og:type" content="website"><meta property="og:url" content="https://quotecraftstudio.github.io/idea-hub/">
+<link rel="canonical" href="https://quotecraftstudio.github.io/idea-hub/"><link rel="icon" href="./icon.svg" type="image/svg+xml"><link rel="stylesheet" href="./app.css"><script type="module" src="./app.js"></script>
+</head><body>
+<a class="skip" href="#main">Skip to discussions</a>
+<header class="top"><a class="brand" href="../">QuoteCraft <span>Studio</span></a><nav aria-label="Account"><button id="profile-nav" hidden>My profile</button><button id="mine-nav" hidden>My content</button><button id="mod-nav" hidden>Moderation</button><button id="auth-nav">Sign in</button><button id="logout" hidden>Sign out</button></nav></header>
+<main id="main" tabindex="-1">
+<section class="hero"><p class="eyebrow">THE QUOTECRAFT COMMUNITY</p><h1>Small ideas.<br><span>Shared possibilities.</span></h1><p>A place to make things, ask questions, and turn “what if” into something useful.</p><div class="hero-actions"><button class="primary" id="new-discussion">Start a discussion ↗</button><a href="./guidelines.html">How we keep this space helpful →</a></div></section>
+<div id="status" role="status" aria-live="polite"></div>
+<div class="workspace"><aside><h2>Explore spaces</h2><nav id="categories" aria-label="Discussion categories"></nav><div class="aside-note"><span aria-hidden="true">✦</span><h3>Good ideas grow together.</h3><p>Be curious. Be specific. Give others room to learn.</p><a href="./safety.html">Reporting & safety</a></div></aside>
+<section class="feed" aria-labelledby="feed-title"><div class="section-heading"><div><p class="eyebrow" id="category-kicker">ALL SPACES</p><h2 id="feed-title">Community discussions</h2></div><span class="pill">Thoughtfully moderated</span></div>
+<form id="filters" class="filters" role="search"><label class="search">Search discussions<input id="search" type="search" maxlength="100" placeholder="Find an idea or a question…"></label><label>Sort by<select id="sort"><option value="active">Recently active</option><option value="newest">Newest first</option><option value="oldest">Oldest first</option></select></label><button type="submit">Search</button></form>
+<div id="view"><p class="empty">Connecting to Idea Hub…</p></div><div class="pagination"><button id="previous" hidden>← Previous</button><span id="page-label"></span><button id="next" hidden>Next →</button></div>
+</section></div></main>
+<footer><div><strong>Idea Hub</strong><p>Practical ideas. Open minds. A little progress, together.</p></div><nav aria-label="Policies"><a href="./terms.html">Terms of Use</a><a href="./privacy.html">Privacy Policy</a><a href="./guidelines.html">Community Guidelines</a><a href="./safety.html">Reporting & safety</a><button id="support">Account support</button></nav><small>© 2026 QuoteCraft Studio</small></footer>
+<dialog id="modal" aria-labelledby="dialog-title"><div class="dialog-top"><h2 id="dialog-title"></h2><button id="close-modal" aria-label="Close dialog">✕</button></div><div id="dialog-body"></div><p id="dialog-status" role="status" aria-live="polite"></p></dialog>
+<noscript><p class="empty">JavaScript is needed for accounts and discussions. You can still read the policies linked below.</p></noscript>
 </body></html>

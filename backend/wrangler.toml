@@ -1,0 +1,15 @@
+name = "idea-hub-github"
+main = "worker.mjs"
+compatibility_date = "2026-10-14"
+workers_dev = true
+
+[observability]
+enabled = false
+
+[vars]
+SITE_ORIGIN = "https://quotecraftstudio.github.io"
+# Set FIREBASE_API_KEY, RATE_LIMIT_SALT and ADMIN_UIDS as Worker secrets.
+# Bind only the separate idea-hub-github D1 database as DB.
+
+[triggers]
+crons = ["0 3 * * *"]
