@@ -4,7 +4,7 @@ This backend is ONLY for `QuoteCraftStudio/QuoteCraftStudio.github.io`. Do not d
 
 ## Free deployment
 
-1. Authorize official Wrangler with account/user read and Workers/D1 write permissions. OAuth permissions cover the account; operate only on the resources named below. Stay on Workers Free and Firebase Spark. Do not attach billing or activate paid services.
+1. Authorize official Wrangler with account/user read, Workers Scripts write, and D1 write permissions. OAuth permissions cover the account; operate only on the resources named below. Stay on Workers Free and Firebase Spark. Do not attach billing or activate paid services.
 2. Create a new D1 database named `idea-hub-github`. Add its returned identifier to `wrangler.toml`:
 
 ```toml
