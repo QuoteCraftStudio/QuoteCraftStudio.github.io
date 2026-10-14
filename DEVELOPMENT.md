@@ -1,6 +1,6 @@
 # Idea Hub development
 
-The original homepage and robots file are preserved. Original remote revision: `e3446ea9362fa6f3d6cf445c79764cdda3ec52a0`. Restore individual files from that revision if needed; do not reset unrelated later work.
+The original homepage is preserved. The robots allow rule and sitemap location are retained, with development directories excluded from crawling. Original remote revision: `e3446ea9362fa6f3d6cf445c79764cdda3ec52a0`. Restore individual files from that revision if needed; do not reset unrelated later work.
 
 The static site deploys from `main` at the repository root. `.nojekyll` keeps deployment buildless. The separate backend is documented in `backend/README.md`. No WHC content or other repository is part of this deployment.
 
