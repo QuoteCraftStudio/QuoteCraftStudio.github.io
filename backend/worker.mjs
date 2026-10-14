@@ -25,6 +25,7 @@ async function limited(env,key,max,seconds=3600){
 async function firebase(env,method,data){
  const r=await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:${method}?key=${encodeURIComponent(env.FIREBASE_API_KEY)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data),signal:AbortSignal.timeout(10000)});
  const v=await r.json();if(!r.ok){const code=v.error?.message||'';
+ if(r.status===403||/API_KEY|PROJECT_NOT_FOUND|CONFIGURATION_NOT_FOUND|OPERATION_NOT_ALLOWED/.test(code))fail('Authentication configuration needs attention.',503);
  if(code.includes('TOO_MANY_ATTEMPTS'))fail('Too many attempts. Please try again later.',429);
  if(code.includes('EMAIL_EXISTS'))fail('Registration could not be completed. Try signing in or resetting your password.');
  if(code.includes('TOKEN_EXPIRED')||code.includes('INVALID_ID_TOKEN')||code.includes('USER_DISABLED'))fail('Please sign in again.',401);

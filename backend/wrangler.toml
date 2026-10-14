@@ -11,5 +11,10 @@ SITE_ORIGIN = "https://quotecraftstudio.github.io"
 # Set FIREBASE_API_KEY, RATE_LIMIT_SALT and ADMIN_UIDS as Worker secrets.
 # Bind only the separate idea-hub-github D1 database as DB.
 
+[[d1_databases]]
+binding = "DB"
+database_name = "idea-hub-github"
+database_id = "a9303e61-9ebf-4ccb-a73c-900db6bf962c"
+
 [triggers]
 crons = ["0 3 * * *"]
