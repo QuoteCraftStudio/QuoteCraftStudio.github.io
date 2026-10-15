@@ -45,6 +45,30 @@ async function member(req,env){
  return {...u,...record};
 }
 function consent(data){if(data.agree!==true||data.termsVersion!==TERMS)fail('Accept the current Terms and Community Guidelines.');if(data.website)fail('Submission rejected.');}
+// Pre-publication Cloudflare Workers AI screening. Human approval is still mandatory.
+async function checkContentSafety(env,content){
+ const text=content.normalize('NFKC');
+ // Target a small set of clear profanity only; avoid substring matches in words such as "class".
+ if(/\b(?:fuck(?:s|ed|ing|er|ers)?|shit(?:s|ty|ting)?|bitch(?:es|y)?|cunt(?:s)?|motherfucker(?:s)?)\b/i.test(text))fail('Please remove profanity and follow the Community Guidelines.',400);
+ const links=text.match(/https?:\/\/\S+/gi)||[];
+ if(links.length>2)fail('Please remove excessive links or advertising and revise your message.',400);
+ if(!env.AI||typeof env.AI.run!=='function')fail('Content screening is temporarily unavailable. Please try again later.',503);
+ let result;
+ try{
+  result=await env.AI.run('@cf/meta/llama-guard-3-8b',{messages:[{role:'user',content:text}],max_tokens:32,temperature:0});
+ }catch{fail('Content screening is temporarily unavailable. Please try again later.',503);}
+ const answer=result?.response??(typeof result==='string'?result:undefined);
+ if(answer&&typeof answer==='object'&&!Array.isArray(answer)){
+  if(answer.safe===false)fail('This content may violate the Community Guidelines. Please revise it.',400);
+  if(answer.safe===true)return;
+ }
+ if(typeof answer==='string'){
+  const verdict=answer.trim().toLowerCase();
+  if(/^unsafe(?:\s|$)/.test(verdict))fail('This content may violate the Community Guidelines. Please revise it.',400);
+  if(verdict==='safe')return;
+ }
+ fail('Content screening is temporarily unavailable. Please try again later.',503);
+}
 const publicCols='d.id,d.category,d.title,d.body,d.status,d.locked,d.pinned,d.created_at,d.updated_at,d.activity_at,m.name AS author,m.id AS profile_id';
 async function publicTopic(env,target){return env.DB.prepare(`SELECT ${publicCols} FROM discussions d JOIN members m ON m.uid=d.uid WHERE d.id=? AND d.status='approved'`).bind(target).first();}
 async function audit(env,u,action,target){await env.DB.prepare('INSERT INTO audit(actor_uid,action,target,created_at) VALUES (?,?,?,?)').bind(u.uid,action,target,stamp()).run();}
@@ -80,7 +104,7 @@ async function handle(req,env){
  if(path==='/api/profile'&&method==='POST'){
   const u=await identity(req,env),data=await body(req);consent(data);const name=str(data.name,2,50,'Display name'),bio=typeof data.bio==='string'?data.bio.trim():'';if(bio.length>300)fail('Bio is too long.');
   const prior=await env.DB.prepare('SELECT suspended FROM members WHERE uid=?').bind(u.uid).first();if(prior?.suspended)fail('Account suspended.',403);
-  await limited(env,`profile:${u.uid}`,10);const now=stamp();
+  await limited(env,`profile:${u.uid}`,10);await checkContentSafety(env,`${name}\n${bio}`);const now=stamp();
   await env.DB.prepare('INSERT INTO members(uid,id,name,bio,created_at,updated_at) VALUES (?,?,?,?,?,?) ON CONFLICT(uid) DO UPDATE SET name=excluded.name,bio=excluded.bio,updated_at=excluded.updated_at').bind(u.uid,crypto.randomUUID(),name,bio,now,now).run();return json({saved:true});
  }
  const profile=path.match(/^\/api\/profiles\/([^/]+)$/);
@@ -103,10 +127,10 @@ async function handle(req,env){
  if(method==='POST'&&(path==='/api/discussions'||replies)){
   const u=await member(req,env),data=await body(req);consent(data);await limited(env,`post:${u.uid}`,10);
   const content=str(data.body,replies?3:10,replies?3000:5000,'Message'),now=stamp(),newID=crypto.randomUUID();
-  if(replies){const parent=await publicTopic(env,id(replies[1]));if(!parent)fail('Discussion not found.',404);if(parent.locked)fail('This discussion is locked.',409);
+  if(replies){const parent=await publicTopic(env,id(replies[1]));if(!parent)fail('Discussion not found.',404);if(parent.locked)fail('This discussion is locked.',409);await checkContentSafety(env,content);
    // Guard the parent again in the insertion to avoid posting during a simultaneous lock/removal.
    const r=await env.DB.prepare("INSERT INTO replies(id,discussion_id,uid,body,created_at,updated_at,terms_version) SELECT ?,?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM discussions WHERE id=? AND status='approved' AND locked=0)").bind(newID,parent.id,u.uid,content,now,now,TERMS,parent.id).run();if(!r.meta.changes)fail('Discussion is unavailable.',409);
-  }else{const title=str(data.title,4,120,'Title');if(!CATEGORIES.includes(data.category))fail('Choose a category.');await env.DB.prepare('INSERT INTO discussions(id,uid,category,title,body,created_at,updated_at,activity_at,terms_version) VALUES (?,?,?,?,?,?,?,?,?)').bind(newID,u.uid,data.category,title,content,now,now,now,TERMS).run();}
+  }else{const title=str(data.title,4,120,'Title');if(!CATEGORIES.includes(data.category))fail('Choose a category.');await checkContentSafety(env,`${title}\n${content}`);await env.DB.prepare('INSERT INTO discussions(id,uid,category,title,body,created_at,updated_at,activity_at,terms_version) VALUES (?,?,?,?,?,?,?,?,?)').bind(newID,u.uid,data.category,title,content,now,now,now,TERMS).run();}
   return json({id:newID,status:'pending'},201);
  }
  if(path==='/api/mine'&&method==='GET'){
@@ -118,8 +142,8 @@ async function handle(req,env){
   const row=await env.DB.prepare(`SELECT * FROM ${table} WHERE id=? AND uid=? AND status!='removed'`).bind(target,u.uid).first();if(!row)fail('Content not found.',404);await limited(env,`edit:${u.uid}`,30);
   if(data.action==='delete'){await env.DB.prepare(`UPDATE ${table} SET body='',status='removed',updated_at=? WHERE id=? AND uid=?`).bind(stamp(),target,u.uid).run();return json({deleted:true});}
   consent(data);const content=str(data.body,data.type==='discussion'?10:3,data.type==='discussion'?5000:3000,'Message');
-  if(data.type==='discussion'){const title=str(data.title,4,120,'Title');await env.DB.prepare("UPDATE discussions SET title=?,body=?,status='pending',updated_at=? WHERE id=? AND uid=?").bind(title,content,stamp(),target,u.uid).run();}
-  else await env.DB.prepare("UPDATE replies SET body=?,status='pending',updated_at=? WHERE id=? AND uid=?").bind(content,stamp(),target,u.uid).run();return json({saved:true,status:'pending'});
+  if(data.type==='discussion'){const title=str(data.title,4,120,'Title');await checkContentSafety(env,`${title}\n${content}`);await env.DB.prepare("UPDATE discussions SET title=?,body=?,status='pending',updated_at=? WHERE id=? AND uid=?").bind(title,content,stamp(),target,u.uid).run();}
+  else {await checkContentSafety(env,content);await env.DB.prepare("UPDATE replies SET body=?,status='pending',updated_at=? WHERE id=? AND uid=?").bind(content,stamp(),target,u.uid).run();}return json({saved:true,status:'pending'});
  }
  if(path==='/api/report'&&method==='POST'){
   // Support remains available to suspended members for appeals and privacy requests.
