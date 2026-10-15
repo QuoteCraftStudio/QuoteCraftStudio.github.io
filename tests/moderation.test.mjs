@@ -1,0 +1,67 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import worker,{TERMS} from '../backend/worker.mjs';
+import {fixture,origin} from './fixture.mjs';
+
+test('Cloudflare AI screening keeps unsafe content out and human approval required',async()=>{
+  const f=fixture();globalThis.fetch=f.provider;
+  let mode='safe',counter=0;
+  const calls=[];
+  f.env.AI.run=async(model,payload)=>{
+    calls.push({model,payload});
+    if(mode==='error')throw new Error('simulated upstream error');
+    if(mode==='textBad')return {response:'unsafe\nS10'};
+    if(mode==='objectBad')return {response:{safe:false,categories:['S10']}};
+    if(mode==='unknown')return {response:'not a classification'};
+    if(mode==='objectSafe')return {response:{safe:true,categories:[]}};
+    return {response:'safe'};
+  };
+  async function call(path,{who='',data}={}){
+    const headers={Origin:origin,'CF-Connecting-IP':'203.0.113.'+(++counter)};
+    if(who)headers.Authorization='Bearer '+who;
+    if(data)headers['Content-Type']='application/json';
+    const method=data?'POST':'GET';
+    const res=await worker.fetch(new Request('https://example.test'+path,{method,headers,body:data?JSON.stringify(data):undefined}),f.env);
+    return {status:res.status,data:await res.json()};
+  }
+  const consent={agree:true,termsVersion:TERMS};
+  assert.equal((await call('/api/profile',{who:'alice',data:{...consent,name:'Alice',bio:'I build things'}})).status,200);
+  assert.equal((await call('/api/profile',{who:'admin',data:{...consent,name:'Admin',bio:'Moderation'}})).status,200);
+  assert.equal(calls.length,2);
+  assert.equal(calls[0].model,'@cf/meta/llama-guard-3-8b');
+  const draft={...consent,title:'Practical project',body:'Here is a constructive proposal.',category:'ideas'};
+  const created=await call('/api/discussions',{who:'alice',data:draft});
+  assert.equal(created.status,201);assert.equal(created.data.status,'pending');
+  const id=created.data.id;
+  assert.equal((await call('/api/discussions/'+id)).status,404);
+  assert.equal((await call('/api/mod/action',{who:'admin',data:{type:'discussion',id,action:'approve'}})).status,200);
+  assert.equal((await call('/api/discussions/'+id)).status,200);
+  mode='textBad';
+  assert.equal((await call('/api/discussions',{who:'alice',data:draft})).status,400);
+  assert.equal((await call('/api/discussions/'+id+'/replies',{who:'alice',data:{...consent,body:'A useful reply on the project.'}})).status,400);
+  assert.equal((await call('/api/content',{who:'alice',data:{...consent,type:'discussion',action:'edit',id,title:'New title',body:'This edited content should be reviewed.'}})).status,400);
+  assert.equal((await call('/api/discussions/'+id)).status,200);
+  mode='objectBad';
+  assert.equal((await call('/api/profile',{who:'alice',data:{...consent,name:'Changed name',bio:'New biography'}})).status,400);
+  mode='objectSafe';
+  const reply=await call('/api/discussions/'+id+'/replies',{who:'alice',data:{...consent,body:'This is a practical reply.'}});
+  assert.equal(reply.status,201);assert.equal(reply.data.status,'pending');
+  mode='unknown';
+  assert.equal((await call('/api/discussions',{who:'alice',data:draft})).status,503);
+  mode='error';
+  assert.equal((await call('/api/discussions',{who:'alice',data:draft})).status,503);
+  mode='safe';
+  const safeCount=calls.length;
+  assert.equal((await call('/api/discussions',{who:'alice',data:{...draft,category:'bad'}})).status,400);
+  assert.equal(calls.length,safeCount,'invalid submissions should not use AI tokens');
+  assert.equal((await call('/api/discussions',{who:'alice',data:{...draft,body:'This is a fucking bad idea.'}})).status,400);
+  assert.equal(calls.length,safeCount,'profanity is blocked before AI');
+  const saved=await call('/api/mine',{who:'alice'});
+  assert.equal(saved.status,200);assert.equal(saved.data.discussions.length,1,'unsafe submissions are not stored');
+  assert.equal((await call('/api/mod/queue',{who:'admin'})).status,200);
+  const before=f.db.prepare('SELECT COUNT(*) AS n FROM discussions').get().n;
+  const existingAI=f.env.AI;f.env.AI=undefined;
+  assert.equal((await call('/api/discussions',{who:'alice',data:draft})).status,503);
+  f.env.AI=existingAI;
+  assert.equal(f.db.prepare('SELECT COUNT(*) AS n FROM discussions').get().n,before);
+});
