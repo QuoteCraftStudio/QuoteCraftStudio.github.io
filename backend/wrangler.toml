@@ -16,5 +16,8 @@ binding = "DB"
 database_name = "idea-hub-github"
 database_id = "a9303e61-9ebf-4ccb-a73c-900db6bf962c"
 
+[ai]
+binding = "AI"
+
 [triggers]
 crons = ["0 3 * * *"]
