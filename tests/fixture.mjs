@@ -11,7 +11,7 @@ export function fixture(){
   async run(){const r=db.prepare(this.sql).run(...this.params);return {success:true,meta:{changes:Number(r.changes),last_row_id:Number(r.lastInsertRowid)}};}
  }
  const DB={prepare:sql=>new Statement(sql),batch:async statements=>{db.exec('BEGIN');try{const results=[];for(const s of statements)results.push(await s.run());db.exec('COMMIT');return results;}catch(e){db.exec('ROLLBACK');throw e;}}};
- const env={DB,SITE_ORIGIN:origin,FIREBASE_API_KEY:'synthetic-test-value',RATE_LIMIT_SALT:'test-only-secret-with-at-least-thirty-two-characters',ADMIN_UIDS:'admin'};
+ const env={DB,AI:{run:async()=>({response:{safe:true,categories:[]}})},SITE_ORIGIN:origin,FIREBASE_API_KEY:'synthetic-test-value',RATE_LIMIT_SALT:'test-only-secret-with-at-least-thirty-two-characters',ADMIN_UIDS:'admin'};
  const users={admin:{localId:'admin',emailVerified:true},alice:{localId:'alice',emailVerified:true},bob:{localId:'bob',emailVerified:true},unverified:{localId:'unverified',emailVerified:false},disabled:{localId:'disabled',emailVerified:true,disabled:true}};
  const calls=[];
  async function provider(url,options){if(!String(url).startsWith('https://identitytoolkit.googleapis.com/v1/accounts:'))throw Error('Unexpected outbound request in test');const action=String(url).split('accounts:')[1].split('?')[0],data=JSON.parse(options.body);calls.push({action,data});if(action==='lookup'){const user=users[data.idToken];return Response.json(user?{users:[user]}:{error:{message:'INVALID_ID_TOKEN'}},{status:user?200:400});}
