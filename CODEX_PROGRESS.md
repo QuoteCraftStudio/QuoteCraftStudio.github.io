@@ -14,3 +14,9 @@
 - Correct remaining incorrect brand references only where verified.
 ## Working rules
 See AGENTS.md. Preserve verified work, use small changes, and document checkpoints.
+
+## Additional finishing work — 2026-10-14
+- Updated brand links on privacy.html, terms.html, guidelines.html and safety.html to https://quotecraftstudio.ca/.
+- Verified config.js points to the configured Cloudflare Worker endpoint; endpoint configuration is not proof of live backend health.
+- Noted that community-guidelines.html is a separate, older-looking guidelines page; compare content and incoming links before consolidating or redirecting.
+- Still pending: live registration, sign-in, email verification, posting, moderation, reporting, deployment and mobile tests. Do not assert these passed.
