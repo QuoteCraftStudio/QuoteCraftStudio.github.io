@@ -3,6 +3,9 @@ main = "worker.mjs"
 compatibility_date = "2026-10-14"
 workers_dev = true
 
+[ai]
+binding = "AI"
+
 [observability]
 enabled = false
 
@@ -15,9 +18,6 @@ SITE_ORIGIN = "https://quotecraftstudio.github.io"
 binding = "DB"
 database_name = "idea-hub-github"
 database_id = "a9303e61-9ebf-4ccb-a73c-900db6bf962c"
-
-[ai]
-binding = "AI"
 
 [triggers]
 crons = ["0 3 * * *"]
