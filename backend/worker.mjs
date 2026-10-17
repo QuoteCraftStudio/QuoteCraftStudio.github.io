@@ -1,4 +1,5 @@
-export const TERMS = '2026-10-14';
+import {checkContentSafety, ScreeningError} from './moderation.mjs';
+export const TERMS = '2026-10-16';
 export const CATEGORIES = ['ideas','projects','technology','questions'];
 class Problem extends Error { constructor(message,status=400){super(message);this.status=status;} }
 const fail=(message,status)=>{throw new Problem(message,status);};
@@ -80,7 +81,7 @@ async function handle(req,env){
  if(path==='/api/profile'&&method==='POST'){
   const u=await identity(req,env),data=await body(req);consent(data);const name=str(data.name,2,50,'Display name'),bio=typeof data.bio==='string'?data.bio.trim():'';if(bio.length>300)fail('Bio is too long.');
   const prior=await env.DB.prepare('SELECT suspended FROM members WHERE uid=?').bind(u.uid).first();if(prior?.suspended)fail('Account suspended.',403);
-  await limited(env,`profile:${u.uid}`,10);const now=stamp();
+  await limited(env,`profile:${u.uid}`,10);await checkContentSafety(env,[name,bio]);const now=stamp();
   await env.DB.prepare('INSERT INTO members(uid,id,name,bio,created_at,updated_at) VALUES (?,?,?,?,?,?) ON CONFLICT(uid) DO UPDATE SET name=excluded.name,bio=excluded.bio,updated_at=excluded.updated_at').bind(u.uid,crypto.randomUUID(),name,bio,now,now).run();return json({saved:true});
  }
  const profile=path.match(/^\/api\/profiles\/([^/]+)$/);
@@ -104,9 +105,10 @@ async function handle(req,env){
   const u=await member(req,env),data=await body(req);consent(data);await limited(env,`post:${u.uid}`,10);
   const content=str(data.body,replies?3:10,replies?3000:5000,'Message'),now=stamp(),newID=crypto.randomUUID();
   if(replies){const parent=await publicTopic(env,id(replies[1]));if(!parent)fail('Discussion not found.',404);if(parent.locked)fail('This discussion is locked.',409);
+   await checkContentSafety(env,[content]);
    // Guard the parent again in the insertion to avoid posting during a simultaneous lock/removal.
    const r=await env.DB.prepare("INSERT INTO replies(id,discussion_id,uid,body,created_at,updated_at,terms_version) SELECT ?,?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM discussions WHERE id=? AND status='approved' AND locked=0)").bind(newID,parent.id,u.uid,content,now,now,TERMS,parent.id).run();if(!r.meta.changes)fail('Discussion is unavailable.',409);
-  }else{const title=str(data.title,4,120,'Title');if(!CATEGORIES.includes(data.category))fail('Choose a category.');await env.DB.prepare('INSERT INTO discussions(id,uid,category,title,body,created_at,updated_at,activity_at,terms_version) VALUES (?,?,?,?,?,?,?,?,?)').bind(newID,u.uid,data.category,title,content,now,now,now,TERMS).run();}
+  }else{const title=str(data.title,4,120,'Title');if(!CATEGORIES.includes(data.category))fail('Choose a category.');await checkContentSafety(env,[title,content]);await env.DB.prepare('INSERT INTO discussions(id,uid,category,title,body,created_at,updated_at,activity_at,terms_version) VALUES (?,?,?,?,?,?,?,?,?)').bind(newID,u.uid,data.category,title,content,now,now,now,TERMS).run();}
   return json({id:newID,status:'pending'},201);
  }
  if(path==='/api/mine'&&method==='GET'){
@@ -118,8 +120,8 @@ async function handle(req,env){
   const row=await env.DB.prepare(`SELECT * FROM ${table} WHERE id=? AND uid=? AND status!='removed'`).bind(target,u.uid).first();if(!row)fail('Content not found.',404);await limited(env,`edit:${u.uid}`,30);
   if(data.action==='delete'){await env.DB.prepare(`UPDATE ${table} SET body='',status='removed',updated_at=? WHERE id=? AND uid=?`).bind(stamp(),target,u.uid).run();return json({deleted:true});}
   consent(data);const content=str(data.body,data.type==='discussion'?10:3,data.type==='discussion'?5000:3000,'Message');
-  if(data.type==='discussion'){const title=str(data.title,4,120,'Title');await env.DB.prepare("UPDATE discussions SET title=?,body=?,status='pending',updated_at=? WHERE id=? AND uid=?").bind(title,content,stamp(),target,u.uid).run();}
-  else await env.DB.prepare("UPDATE replies SET body=?,status='pending',updated_at=? WHERE id=? AND uid=?").bind(content,stamp(),target,u.uid).run();return json({saved:true,status:'pending'});
+  if(data.type==='discussion'){const title=str(data.title,4,120,'Title');await checkContentSafety(env,[title,content]);await env.DB.prepare("UPDATE discussions SET title=?,body=?,status='pending',updated_at=? WHERE id=? AND uid=? AND status!='removed'").bind(title,content,stamp(),target,u.uid).run();}
+  else {await checkContentSafety(env,[content]);await env.DB.prepare("UPDATE replies SET body=?,status='pending',updated_at=? WHERE id=? AND uid=? AND status!='removed'").bind(content,stamp(),target,u.uid).run();}return json({saved:true,status:'pending'});
  }
  if(path==='/api/report'&&method==='POST'){
   // Support remains available to suspended members for appeals and privacy requests.
@@ -146,7 +148,14 @@ async function handle(req,env){
    else{
     const table=data.type==='discussion'?'discussions':'replies';const row=await env.DB.prepare(`SELECT * FROM ${table} WHERE id=?`).bind(target).first();if(!row)fail('Content not found.',404);
     if(data.action==='approve'){if(row.status==='removed')fail('Removed content cannot be restored.',409);if(data.type==='reply'&&!await publicTopic(env,row.discussion_id))fail('Approve the discussion first.',409);
-     await env.DB.batch([env.DB.prepare(`UPDATE ${table} SET status='approved' WHERE id=? AND status!='removed'`).bind(target),env.DB.prepare('UPDATE discussions SET activity_at=? WHERE id=?').bind(stamp(),data.type==='discussion'?target:row.discussion_id)]);
+     // Also screen old queued content. Only approve the exact revision screened;
+     // a concurrent edit or removal must never inherit another revision's result.
+     await checkContentSafety(env,data.type==='discussion'?[row.title,row.body]:[row.body]);
+     const titleGuard=data.type==='discussion'?' AND title=?':'';
+     const params=[target,row.body,row.updated_at,...(data.type==='discussion'?[row.title]:[])];
+     const result=await env.DB.prepare(`UPDATE ${table} SET status='approved' WHERE id=? AND body=? AND updated_at=? AND status!='removed'${titleGuard}`).bind(...params).run();
+     if(!result.meta.changes)fail('Content changed during review. Refresh the queue and review it again.',409);
+     await env.DB.prepare('UPDATE discussions SET activity_at=? WHERE id=?').bind(stamp(),data.type==='discussion'?target:row.discussion_id).run();
     }else if(data.action==='remove')await env.DB.prepare(`UPDATE ${table} SET status='removed',body='',updated_at=? WHERE id=?`).bind(stamp(),target).run();
     else if(data.type==='discussion'&&['lock','unlock','pin','unpin'].includes(data.action)){const col=['lock','unlock'].includes(data.action)?'locked':'pinned';await env.DB.prepare(`UPDATE discussions SET ${col}=? WHERE id=?`).bind(['lock','pin'].includes(data.action)?1:0,target).run();}else fail('Invalid action.');
    }
@@ -156,7 +165,7 @@ async function handle(req,env){
  fail('Not found.',404);
 }
 export default {
- async fetch(req,env){let response;try{response=await handle(req,env);}catch(e){response=json({error:e instanceof Problem?e.message:'Service temporarily unavailable. Please try again.'},e instanceof Problem?e.status:503);}
+ async fetch(req,env){let response;try{response=await handle(req,env);}catch(e){const known=e instanceof Problem||e instanceof ScreeningError;response=json({error:known?e.message:'Service temporarily unavailable. Please try again.'},known?e.status:503);}
   const headers=new Headers(response.headers);if(req.headers.get('Origin')===env.SITE_ORIGIN){headers.set('Access-Control-Allow-Origin',env.SITE_ORIGIN);headers.set('Vary','Origin');headers.set('Access-Control-Allow-Headers','Content-Type, Authorization');headers.set('Access-Control-Allow-Methods','GET, POST, OPTIONS');}
   return new Response(response.body,{status:response.status,headers});
  },

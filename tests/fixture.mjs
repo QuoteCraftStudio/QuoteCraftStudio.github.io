@@ -18,5 +18,6 @@ export function fixture(){
  if(action==='signUp')return Response.json({idToken:'unverified',refreshToken:'should-not-leak',expiresIn:'3600'});
  if(action==='signInWithPassword')return Response.json({idToken:data.email.startsWith('admin')?'admin':data.email.startsWith('bob')?'bob':'alice',refreshToken:'should-not-leak',expiresIn:'3600'});
  if(action==='sendOobCode')return Response.json({email:'synthetic@example.test'});throw Error('Unexpected auth action');}
+ env.AI={run:async()=>({response:'safe'})}; // Synthetic only; never used by production config.
  return {db,env,users,provider,calls};
 }

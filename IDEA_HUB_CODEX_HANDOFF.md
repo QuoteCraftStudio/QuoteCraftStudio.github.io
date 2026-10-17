@@ -1,5 +1,14 @@
 # Idea Hub — Codex Resume Handoff
 
+## Resume checkpoint: October 16, 2026
+AI implementation is prepared, not deployed. Start with the current section in
+CODEX_PROGRESS.md and backend/AI_MODERATION.md. All 28 local tests pass. Do not
+repeat infrastructure setup. Real inference passed after Workers Free confirmation;
+production remains subject to explicit approval after preview results. The
+provided ZIP draft has been inspected, and live source retrieval revealed an
+undefined checkContentSafety call in production posting. Keep review changes
+off main until deployment approval, because main also publishes frontend files.
+
 Prepared 2026-10-14. **Read this before doing new work.**
 
 ## Project identity
@@ -46,3 +55,5 @@ Use minimal edits and targeted tests. Preserve the Reddit-style design and funct
 
 ## Resume prompt
 > Read AGENTS.md, CODEX_PROGRESS.md, and IDEA_HUB_CODEX_HANDOFF.md. Resume Idea Hub at the last verified checkpoint. Begin with deployment and backend verification; avoid repeating completed work, rebuilding the site, or incurring costs.
+
+

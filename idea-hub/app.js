@@ -1,5 +1,5 @@
 import { API } from './config.js';
-const $=s=>document.querySelector(s),TERMS='2026-10-14';
+const $=s=>document.querySelector(s),TERMS='2026-10-16';
 const categories={ideas:['💡','Ideas & Inventions'],projects:['🛠','Projects & DIY'],technology:['⌘','Technology & Apps'],questions:['?','Questions & Help']};
 let token='',session=null,category='',page=0,mode='feed',replyPage=0;
 // Sessions live only in this tab's memory. No passwords or tokens in browser storage.

@@ -1,4 +1,16 @@
 # Idea Hub Progress — 2026-10-14
+
+## Current checkpoint — October 16, 2026
+- AI patch prepared on isolated checkout from main 35cc168. No production changes.
+- Retrieved actual Worker source through authorized Cloudflare API; discovered a post-submission call to undefined checkContentSafety. Compared with supplied ZIP draft and original-baseline diff.
+- Implemented backend/moderation.mjs and connected profile, discussion/reply create/edit, and moderator-approval paths. Existing database schema, Firebase auth, endpoints, CORS and limits preserved. Added existing AI binding to tracked configuration.
+- Preserved manual approval; strict response validation and 20-second timeout fail closed. Added conservative profanity/insult/spam rules and approval revision guard.
+- Added tests/moderation.test.mjs, synthetic AI fixture, isolated AI preview, policy disclosures and October 16 consent version. Redirected stale duplicate guidelines page to current guidelines after static test exposed it.
+- 28 automated tests and JS syntax checks pass. Real-model preview now passed after owner confirmation of Workers Free; see verified preview checkpoint below.
+- Deployment previously inspected: c956affc-044e-49b4-be39-1b51e08e6ce5, with AI and DB bindings. Live source now contains the undefined function call; current version must be recorded before any deployment.
+- Exact next step: commit/push tested review branch; obtain explicit production approval; deploy and verify. See backend/AI_MODERATION.md. No WHC changes or paid services.
+
+Historical notes below may predate verified work in this chat; do not repeat completed setup.
 ## Verified from repository
 - Root index.html identifies Idea Hub as QuoteCraft Studio and links the main brand to https://quotecraftstudio.ca/.
 - idea-hub/index.html contains forum UI, discussion search, sign-in navigation, policy links, and the QuoteCraft Studio brand.
@@ -29,6 +41,13 @@ See AGENTS.md. Preserve verified work, use small changes, and document checkpoin
 - Next: identify Worker project, add AI binding and server-side checks, test against benign and harmful examples, and verify free quota/fail-closed behavior. Keep existing manual moderation until verified.
 
 
+### Verified preview checkpoint — October 16
+- Owner confirmed Workers Free. Isolated real-model tests passed: clean 200, respectful disagreement 200, threat 400, spam 400, insult 400; no content published. Results saved locally in outputs/Idea-Hub-AI-Preview-2026-10-16.json.
+- Increased timeout from 8 to 20 seconds after ordinary respectful content required 13.95 seconds. Timeout still fails closed with no writes.
+- Current live deployment listing confirms c956affc-044e-49b4-be39-1b51e08e6ce5 at 100 percent. Production unchanged.
+- Remote main advanced to f2c4721 with SEO fixes; preserve these while integrating the review branch.
+- Next: save review branch and present production approval. No account action needed beyond that approval.
+
 ## SEO canonical audit and staging — 2026-10-15
 - Google Search Console reports 3 indexed, 3 not indexed URLs for https://quotecraftstudio.ca/: 1 "Duplicate without user-selected canonical" and 2 "Crawled - currently not indexed". The detail-view examples could not be retrieved (400 error). Do not guess the affected URL.
 - Public checks found WHC-hosted https://quotecraftstudio.ca/ and https://www.quotecraftstudio.ca/ serve the same homepage without a declared canonical, and /index.html also serves it. These WHC files are NOT in this GitHub repository and HAVE NOT been modified.
@@ -36,3 +55,4 @@ See AGENTS.md. Preserve verified work, use small changes, and document checkpoin
 - On this separate branch only, added a self-canonical tag to the GitHub Pages landing page and corrected the legacy GitHub Pages community-guidelines duplicate canonical + relative link. Other pages, policies, AI moderation, and Cloudflare Worker were not changed.
 - Separate AI moderation PR #1 is still a draft and must not be merged/deployed as part of this SEO fix. Confirm GitHub Actions before merging the small SEO PR.
 - NEXT: repair WHC canonical tag for its homepage (https://quotecraftstudio.ca/), 301 redirect www to apex and /index.html to / after confirming WHC routing and backup, and inspect Google Search Console affected URL(s) before requesting validation. Keep https://quotecraftstudio.github.io/idea-hub/ as the separate GitHub Pages forum canonical.
+
