@@ -1,0 +1,50 @@
+name: Notify Bing / IndexNow of Idea Hub updates
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/indexnow.yml
+      - sitemap.xml
+      - index.html
+      - idea-hub/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  notify-indexnow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Submit sitemap URLs with verified ownership key
+        shell: bash
+        env:
+          INDEXNOW_KEY_FILE: a96059f88af238bbd44251ecaa9cd9ef62c48b16.txt
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          from urllib.parse import urlsplit
+          from xml.etree import ElementTree
+          key_file = Path(os.environ["INDEXNOW_KEY_FILE"])
+          key = key_file.read_text(encoding="utf-8").strip()
+          assert key_file.stem == key and key.isalnum(), "IndexNow key file mismatch"
+          root = ElementTree.parse("sitemap.xml").getroot()
+          urls = [item.text.strip() for item in root.findall(".//{*}loc") if item.text]
+          assert urls and len(urls) <= 100, "Unexpected sitemap count"
+          assert all(urlsplit(u).scheme == "https" and urlsplit(u).netloc == "quotecraftstudio.github.io" for u in urls), "Unexpected sitemap host"
+          payload = {"host": "quotecraftstudio.github.io", "key": key, "keyLocation": f"https://quotecraftstudio.github.io/{key_file.name}", "urlList": urls}
+          Path("/tmp/indexnow-payload.json").write_text(json.dumps(payload), encoding="utf-8")
+          print(f"Prepared {len(urls)} verified Idea Hub URLs for IndexNow.")
+          PY
+          status=$(curl --silent --show-error --max-time 30 --retry 0 -o /tmp/indexnow-response -w '%{http_code}' -X POST 'https://api.indexnow.org/indexnow' -H 'Content-Type: application/json; charset=utf-8' --data-binary @/tmp/indexnow-payload.json)
+          echo "IndexNow submission HTTP status: $status"
+          case "$status" in
+            200) echo "IndexNow confirmed URL receipt." ;;
+            202) echo "IndexNow accepted URLs; key validation may still be pending." ;;
+            *) echo "IndexNow did not confirm receipt:"; cat /tmp/indexnow-response; exit 1 ;;
+          esac
