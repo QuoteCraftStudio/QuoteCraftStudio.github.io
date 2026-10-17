@@ -13,11 +13,11 @@ test('deployed browser and Worker scripts pass JavaScript syntax checks',()=>{fo
 test('agreement appears at sign-in, not on every post, comment or profile save',()=>{
  const js=read('idea-hub/app.js');
  // One checkbox in sign-in and a recovery agreement dialog for already-signed-in tabs.
- assert.equal((js.match(/agreement\\(f\\)/g)||[]).length,2);
- assert.match(js,/agreementAccepted=true/);
- assert.match(js,/if\\(!agreementAccepted\\)\\{agreementDialog\\(next\\)/);
- assert.doesNotMatch(js,/if\\(!consentProof\\)\\{authDialog\\(\\)/);
- assert.match(js,/withSessionAgreement\\(path,data/);
+ assert.equal(js.split('agreement(f);').length-1,2);
+ assert.ok(js.includes('agreementAccepted=true'));
+ assert.ok(js.includes('if(!agreementAccepted){agreementDialog(next)'));
+ assert.ok(!js.includes('if(!consentProof){authDialog()'));
+ assert.ok(js.includes('withSessionAgreement(path,data'));
  assert.match(js,/consentProof=v\.consentProof\|\|''/);
  assert.match(js,/X-Idea-Hub-Agreement/);
  assert.match(read('backend/worker.mjs'),/X-Idea-Hub-Agreement/);
