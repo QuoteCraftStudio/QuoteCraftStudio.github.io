@@ -8,11 +8,16 @@ test('policies and consent version match the application',()=>{assert.match(read
 
 test('screened POST requests have a longer timeout than GET requests',()=>{const js=read('idea-hub/app.js');assert.match(js,/AbortSignal\.timeout\(data\?30000:15000\)/);});
 
-test('deployed browser and Worker scripts pass JavaScript syntax checks',()=>{for(const file of ['idea-hub/app.js','idea-hub/config.js','backend/worker.mjs','backend/moderation.mjs'])execFileSync(process.execPath,['--check',file],{stdio:'pipe'});});
+test('deployed browser and Worker scripts pass JavaScript syntax checks',()=>{for(const file of ['idea-hub/app.js','idea-hub/config.js','backend/worker.mjs','backend/moderation.mjs','idea-hub/session-agreement.js'])execFileSync(process.execPath,['--check',file],{stdio:'pipe'});});
 
 test('agreement appears at sign-in, not on every post, comment or profile save',()=>{
  const js=read('idea-hub/app.js');
- assert.equal((js.match(/agreement\(f\)/g)||[]).length,1);
+ // One checkbox in sign-in and a recovery agreement dialog for already-signed-in tabs.
+ assert.equal(js.split('agreement(f);').length-1,2);
+ assert.ok(js.includes('agreementAccepted=true'));
+ assert.ok(js.includes('if(!agreementAccepted){agreementDialog(next)'));
+ assert.ok(!js.includes('if(!consentProof){authDialog()'));
+ assert.ok(js.includes('withSessionAgreement(path,data'));
  assert.match(js,/consentProof=v\.consentProof\|\|''/);
  assert.match(js,/X-Idea-Hub-Agreement/);
  assert.match(read('backend/worker.mjs'),/X-Idea-Hub-Agreement/);
