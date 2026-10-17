@@ -1,3 +1,4 @@
+import {execFileSync} from 'node:child_process';
 import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync,existsSync,readdirSync} from 'node:fs';import {resolve,dirname} from 'node:path';
 const root=resolve('.'),read=p=>readFileSync(p,'utf8');
 test('all local HTML links and assets resolve; canonical URLs use the GitHub hostname',()=>{for(const name of readdirSync('idea-hub').filter(x=>x.endsWith('.html'))){const path='idea-hub/'+name,html=read(path);assert.match(html,/<html lang="en">/);assert.match(html,/<meta name="viewport"/);assert.match(html,/https:\/\/quotecraftstudio.github.io\/idea-hub\//);for(const m of html.matchAll(/(?:href|src)="([^"]+)"/g)){const url=m[1];if(/^(https?:|#|mailto:)/.test(url))continue;let target=resolve(dirname(path),url.split('#')[0]);if(url.endsWith('/'))target=resolve(target,'index.html');assert.ok(existsSync(target),path+' -> '+url);}}});
@@ -6,3 +7,5 @@ test('sitemap lists every public page and robots points to it',()=>{const xml=re
 test('policies and consent version match the application',()=>{assert.match(read('backend/worker.mjs'),/TERMS = '2026-10-17'/);assert.match(read('idea-hub/app.js'),/TERMS='2026-10-17'/);for(const name of ['terms','privacy','guidelines'])assert.match(read('idea-hub/'+name+'.html'),/October 17, 2026/);});
 
 test('screened POST requests have a longer timeout than GET requests',()=>{const js=read('idea-hub/app.js');assert.match(js,/AbortSignal\.timeout\(data\?30000:15000\)/);});
+
+test('deployed browser and Worker scripts pass JavaScript syntax checks',()=>{for(const file of ['idea-hub/app.js','idea-hub/config.js','backend/worker.mjs','backend/moderation.mjs'])execFileSync(process.execPath,['--check',file],{stdio:'pipe'});});
