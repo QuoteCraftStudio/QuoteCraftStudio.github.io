@@ -1,4 +1,5 @@
 import { API } from './config.js';
+import { withSessionAgreement } from './session-agreement.js';
 const $=s=>document.querySelector(s),TERMS='2026-10-17';
 const categories={ideas:['💡','Ideas & Inventions'],projects:['🛠','Projects & DIY'],technology:['⌘','Technology & Apps'],questions:['?','Questions & Help']};
 let token='',consentProof='',agreementAccepted=false,session=null,category='',page=0,mode='feed',replyPage=0;
@@ -8,10 +9,8 @@ function button(text,fn,cls){const b=node('button',text,cls);b.type='button';b.a
 function notice(text){$('#status').textContent=text;}
 async function run(fn){try{await fn();}catch(e){notice(e.message||String(e));}}
 async function api(path,data){if(!API)throw Error('Idea Hub is being connected. Accounts and posting are not available yet.');
-// If an existing Worker does not return a consent proof, preserve acceptance
-// from the single sign-in checkbox and send the legacy consent fields invisibly.
-// Newer Workers verify the proof when it is available; older Workers remain usable.
-if(data&&token&&agreementAccepted&&!consentProof&&(path==='/api/profile'||path==='/api/content'||path==='/api/discussions'||/^\/api\/discussions\/[^/]+\/replies$/.test(path)))data={...data,agree:true,termsVersion:TERMS};
+// Keep the checkbox a one-time UI action even when a Worker omits its signed proof.
+data=withSessionAgreement(path,data,{token,accepted:agreementAccepted,proof:consentProof,termsVersion:TERMS});
 const headers={};if(token)headers.Authorization=`Bearer ${token}`;if(token&&consentProof)headers['X-Idea-Hub-Agreement']=consentProof;if(data)headers['Content-Type']='application/json';let response;
  try{response=await fetch(API+path,{method:data?'POST':'GET',headers,body:data?JSON.stringify(data):undefined,credentials:'omit',referrerPolicy:'no-referrer',signal:AbortSignal.timeout(data?30000:15000)});}catch{throw Error('Could not reach Idea Hub. Check your connection and try again.');}
  let value;try{value=await response.json();}catch{throw Error('The service returned an unexpected response.');}if(!response.ok){if(response.status===401){token='';consentProof='';agreementAccepted=false;session=null;nav();}throw Error(value.error||'Request failed.');}return value;
