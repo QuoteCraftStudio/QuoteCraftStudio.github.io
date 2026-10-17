@@ -56,3 +56,10 @@ See AGENTS.md. Preserve verified work, use small changes, and document checkpoin
 - Separate AI moderation PR #1 is still a draft and must not be merged/deployed as part of this SEO fix. Confirm GitHub Actions before merging the small SEO PR.
 - NEXT: repair WHC canonical tag for its homepage (https://quotecraftstudio.ca/), 301 redirect www to apex and /index.html to / after confirming WHC routing and backup, and inspect Google Search Console affected URL(s) before requesting validation. Keep https://quotecraftstudio.github.io/idea-hub/ as the separate GitHub Pages forum canonical.
 
+
+## Independent continuation checkpoint — October 17, 2026 (review branch)
+- PR #1 (tested AI moderation implementation) was merged into `main` as `0f68e3e` at 13:17 UTC. The corresponding GitHub Actions `Idea Hub checks` run 39035938738 passed. This proves repo tests passed, **not** that the new Worker was deployed.
+- Live public read-only checks: `GET /api/health` returned `{ "status": "ok", "termsVersion": "2026-10-16" }`; `GET /api/discussions` returned an empty discussions list and no error. GitHub Pages forum opens with its navigation and policy links. Production sign-up, AI inference, posting, approvals, password reset, and account deletion have **not** been verified end to end.
+- Found a client/server timeout mismatch: `idea-hub/app.js` aborted every API request after 15 seconds, while AI moderation can run for up to 20 seconds. This can falsely report a failure for a successful or pending write.
+- On `fix/idea-hub-client-timeout-20261017`, increased frontend POST timeout to 30 seconds while keeping GET at 15 seconds; added a static regression test. This is review code only; do not claim it is live until PR merge/deployment and verification.
+- Next: check PR CI and review before merging to publish the frontend fix. Independently verify Cloudflare Worker's deployed source/version and AI binding against `backend/moderation.mjs` and `backend/wrangler.toml`; obtain explicit production authorization before any Worker deploy. Do not create public posts or real test accounts without approval. Keep existing Firebase/D1 resources and free-tier plans.
