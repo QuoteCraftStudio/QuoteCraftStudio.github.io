@@ -8,7 +8,7 @@ function button(text,fn,cls){const b=node('button',text,cls);b.type='button';b.a
 function notice(text){$('#status').textContent=text;}
 async function run(fn){try{await fn();}catch(e){notice(e.message||String(e));}}
 async function api(path,data){if(!API)throw Error('Idea Hub is being connected. Accounts and posting are not available yet.');const headers={};if(token)headers.Authorization=`Bearer ${token}`;if(data)headers['Content-Type']='application/json';let response;
- try{response=await fetch(API+path,{method:data?'POST':'GET',headers,body:data?JSON.stringify(data):undefined,credentials:'omit',referrerPolicy:'no-referrer',signal:AbortSignal.timeout(15000)});}catch{throw Error('Could not reach Idea Hub. Check your connection and try again.');}
+ try{response=await fetch(API+path,{method:data?'POST':'GET',headers,body:data?JSON.stringify(data):undefined,credentials:'omit',referrerPolicy:'no-referrer',signal:AbortSignal.timeout(data?30000:15000)});}catch{throw Error('Could not reach Idea Hub. Check your connection and try again.');}
  let value;try{value=await response.json();}catch{throw Error('The service returned an unexpected response.');}if(!response.ok){if(response.status===401){token='';session=null;nav();}throw Error(value.error||'Request failed.');}return value;
 }
 function date(value){const d=new Date(value);return Number.isNaN(d.valueOf())?'':d.toLocaleString(undefined,{dateStyle:'medium',timeStyle:'short'});}
