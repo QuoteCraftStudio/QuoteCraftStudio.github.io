@@ -1,8 +1,15 @@
 import {checkContentSafety, ScreeningError} from './moderation.mjs';
-export const TERMS = '2026-10-16';
+export const TERMS = '2026-10-17';
+const PREVIOUS_TERMS = '2026-10-16'; // Transitional clients stay in manual review.
 export const CATEGORIES = ['ideas','projects','technology','questions'];
 class Problem extends Error { constructor(message,status=400){super(message);this.status=status;} }
 const fail=(message,status)=>{throw new Problem(message,status);};
+// AI-cleared content publishes immediately; unsafe content stays private for
+// human review. Provider outages still fail closed without storing new content.
+async function screeningStatus(env,fields){
+ try{await checkContentSafety(env,fields);return 'approved';}
+ catch(error){if(error instanceof ScreeningError&&error.status===400)return 'pending';throw error;}
+}
 const stamp=()=>new Date().toISOString();
 const json=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer'}});
 const str=(v,min,max,label)=>{if(typeof v!=='string'||v.trim().length<min||v.trim().length>max)fail(`${label}: use ${min}–${max} characters.`);return v.trim();};
@@ -45,7 +52,11 @@ async function member(req,env){
  if(!record)fail('Choose your display name in Profile first.',409);if(record.suspended)fail('This account is suspended. Use the account support form to appeal.',403);
  return {...u,...record};
 }
-function consent(data){if(data.agree!==true||data.termsVersion!==TERMS)fail('Accept the current Terms and Community Guidelines.');if(data.website)fail('Submission rejected.');}
+function consent(data){if(data.agree!==true||![TERMS,PREVIOUS_TERMS].includes(data.termsVersion))fail('Accept the current Terms and Community Guidelines.');if(data.website)fail('Submission rejected.');}
+async function publicationStatus(env,fields,version){
+ if(version===PREVIOUS_TERMS){await checkContentSafety(env,fields);return 'pending';}
+ return screeningStatus(env,fields);
+}
 const publicCols='d.id,d.category,d.title,d.body,d.status,d.locked,d.pinned,d.created_at,d.updated_at,d.activity_at,m.name AS author,m.id AS profile_id';
 async function publicTopic(env,target){return env.DB.prepare(`SELECT ${publicCols} FROM discussions d JOIN members m ON m.uid=d.uid WHERE d.id=? AND d.status='approved'`).bind(target).first();}
 async function audit(env,u,action,target){await env.DB.prepare('INSERT INTO audit(actor_uid,action,target,created_at) VALUES (?,?,?,?)').bind(u.uid,action,target,stamp()).run();}
@@ -104,12 +115,14 @@ async function handle(req,env){
  if(method==='POST'&&(path==='/api/discussions'||replies)){
   const u=await member(req,env),data=await body(req);consent(data);await limited(env,`post:${u.uid}`,10);
   const content=str(data.body,replies?3:10,replies?3000:5000,'Message'),now=stamp(),newID=crypto.randomUUID();
+  let publication;
   if(replies){const parent=await publicTopic(env,id(replies[1]));if(!parent)fail('Discussion not found.',404);if(parent.locked)fail('This discussion is locked.',409);
-   await checkContentSafety(env,[content]);
-   // Guard the parent again in the insertion to avoid posting during a simultaneous lock/removal.
-   const r=await env.DB.prepare("INSERT INTO replies(id,discussion_id,uid,body,created_at,updated_at,terms_version) SELECT ?,?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM discussions WHERE id=? AND status='approved' AND locked=0)").bind(newID,parent.id,u.uid,content,now,now,TERMS,parent.id).run();if(!r.meta.changes)fail('Discussion is unavailable.',409);
-  }else{const title=str(data.title,4,120,'Title');if(!CATEGORIES.includes(data.category))fail('Choose a category.');await checkContentSafety(env,[title,content]);await env.DB.prepare('INSERT INTO discussions(id,uid,category,title,body,created_at,updated_at,activity_at,terms_version) VALUES (?,?,?,?,?,?,?,?,?)').bind(newID,u.uid,data.category,title,content,now,now,now,TERMS).run();}
-  return json({id:newID,status:'pending'},201);
+   publication=await publicationStatus(env,[content],data.termsVersion);
+   // Recheck the parent in the write to avoid posting during a lock or removal.
+   const r=await env.DB.prepare("INSERT INTO replies(id,discussion_id,uid,body,status,created_at,updated_at,terms_version) SELECT ?,?,?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM discussions WHERE id=? AND status='approved' AND locked=0)").bind(newID,parent.id,u.uid,content,publication,now,now,TERMS,parent.id).run();if(!r.meta.changes)fail('Discussion is unavailable.',409);
+   if(publication==='approved')await env.DB.prepare("UPDATE discussions SET activity_at=? WHERE id=? AND status='approved'").bind(now,parent.id).run();
+  }else{const title=str(data.title,4,120,'Title');if(!CATEGORIES.includes(data.category))fail('Choose a category.');publication=await publicationStatus(env,[title,content],data.termsVersion);await env.DB.prepare('INSERT INTO discussions(id,uid,category,title,body,status,created_at,updated_at,activity_at,terms_version) VALUES (?,?,?,?,?,?,?,?,?,?)').bind(newID,u.uid,data.category,title,content,publication,now,now,now,TERMS).run();}
+  return json({id:newID,status:publication},201);
  }
  if(path==='/api/mine'&&method==='GET'){
   const u=await member(req,env);const a=await env.DB.prepare("SELECT id,category,title,body,status,created_at,updated_at FROM discussions WHERE uid=? AND status!='removed' ORDER BY created_at DESC LIMIT 100").bind(u.uid).all();
@@ -120,8 +133,10 @@ async function handle(req,env){
   const row=await env.DB.prepare(`SELECT * FROM ${table} WHERE id=? AND uid=? AND status!='removed'`).bind(target,u.uid).first();if(!row)fail('Content not found.',404);await limited(env,`edit:${u.uid}`,30);
   if(data.action==='delete'){await env.DB.prepare(`UPDATE ${table} SET body='',status='removed',updated_at=? WHERE id=? AND uid=?`).bind(stamp(),target,u.uid).run();return json({deleted:true});}
   consent(data);const content=str(data.body,data.type==='discussion'?10:3,data.type==='discussion'?5000:3000,'Message');
-  if(data.type==='discussion'){const title=str(data.title,4,120,'Title');await checkContentSafety(env,[title,content]);await env.DB.prepare("UPDATE discussions SET title=?,body=?,status='pending',updated_at=? WHERE id=? AND uid=? AND status!='removed'").bind(title,content,stamp(),target,u.uid).run();}
-  else {await checkContentSafety(env,[content]);await env.DB.prepare("UPDATE replies SET body=?,status='pending',updated_at=? WHERE id=? AND uid=? AND status!='removed'").bind(content,stamp(),target,u.uid).run();}return json({saved:true,status:'pending'});
+  let publication;
+  if(data.type==='discussion'){const title=str(data.title,4,120,'Title');publication=await publicationStatus(env,[title,content],data.termsVersion);const now=stamp();const updated=await env.DB.prepare("UPDATE discussions SET title=?,body=?,status=?,updated_at=?,activity_at=? WHERE id=? AND uid=? AND status!='removed' AND updated_at=? AND body=? AND title=?").bind(title,content,publication,now,now,target,u.uid,row.updated_at,row.body,row.title).run();if(!updated.meta.changes)fail('Content changed while screening. Refresh and try again.',409);}
+  else {publication=await publicationStatus(env,[content],data.termsVersion);const now=stamp();const updated=await env.DB.prepare("UPDATE replies SET body=?,status=?,updated_at=? WHERE id=? AND uid=? AND status!='removed' AND updated_at=? AND body=?").bind(content,publication,now,target,u.uid,row.updated_at,row.body).run();if(!updated.meta.changes)fail('Content changed while screening. Refresh and try again.',409);if(publication==='approved')await env.DB.prepare("UPDATE discussions SET activity_at=? WHERE id=? AND status='approved'").bind(now,row.discussion_id).run();}
+  return json({saved:true,status:publication});
  }
  if(path==='/api/report'&&method==='POST'){
   // Support remains available to suspended members for appeals and privacy requests.
@@ -150,7 +165,11 @@ async function handle(req,env){
     if(data.action==='approve'){if(row.status==='removed')fail('Removed content cannot be restored.',409);if(data.type==='reply'&&!await publicTopic(env,row.discussion_id))fail('Approve the discussion first.',409);
      // Also screen old queued content. Only approve the exact revision screened;
      // a concurrent edit or removal must never inherit another revision's result.
-     await checkContentSafety(env,data.type==='discussion'?[row.title,row.body]:[row.body]);
+     try{await checkContentSafety(env,data.type==='discussion'?[row.title,row.body]:[row.body]);}
+     catch(error){
+      if(!(error instanceof ScreeningError&&error.status===400))throw error;
+      if(!admin(u,env)||data.confirmFlagged!==true)fail('Automated screening flagged this content. Administrator confirmation required to override.',409);
+     }
      const titleGuard=data.type==='discussion'?' AND title=?':'';
      const params=[target,row.body,row.updated_at,...(data.type==='discussion'?[row.title]:[])];
      const result=await env.DB.prepare(`UPDATE ${table} SET status='approved' WHERE id=? AND body=? AND updated_at=? AND status!='removed'${titleGuard}`).bind(...params).run();

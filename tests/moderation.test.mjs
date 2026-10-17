@@ -28,40 +28,56 @@ test('timeout returns safely and a late result cannot save or publish content',a
  await assert.rejects(checkContentSafety({AI:{run:()=>promise}},['Ordinary content'],{timeoutMs:10}),{status:503});resolve({response:'safe'});
 });
 
-test('API screens profiles, new posts and edits, preserves pending queue and failure atomicity',async()=>{
- const f=fixture(),oldFetch=globalThis.fetch;globalThis.fetch=f.provider;let verdict='safe',seen=[];let ip=0;
- f.env.AI.run=async(model,input)=>{seen.push(input.messages[0].content);if(verdict==='error')throw Error('quota');return {response:verdict};};
+test('API publishes cleared posts/comments but holds unsafe entries for review, without leaking failures',async()=>{
+ const f=fixture(),oldFetch=globalThis.fetch;globalThis.fetch=f.provider;
+ let verdict='safe',seen=[],ip=0;
+ f.env.AI.run=async(model,input)=>{seen.push(input.messages[0].content);if(verdict==='error')throw Error('private provider details');return {response:verdict};};
  const agree={agree:true,termsVersion:TERMS};
  async function req(path,who,data){const r=await worker.fetch(new Request('https://test'+path,{method:data?'POST':'GET',headers:{Origin:origin,'CF-Connecting-IP':'192.0.2.'+(++ip),Authorization:'Bearer '+who,...(data?{'Content-Type':'application/json'}:{})},body:data?JSON.stringify(data):undefined}),f.env);return {status:r.status,data:await r.json()};}
  try{
   for(const who of ['alice','admin'])assert.equal((await req('/api/profile',who,{...agree,name:who+' member',bio:'Practical projects.'})).status,200);
   const original=f.db.prepare('SELECT name,bio FROM members WHERE uid=?').get('alice');
-  verdict='unsafe\nS10';assert.equal((await req('/api/profile','alice',{...agree,name:'New name',bio:'Blocked biography'})).status,400);assert.deepEqual(f.db.prepare('SELECT name,bio FROM members WHERE uid=?').get('alice'),original);
+  verdict='unsafe\nS10';assert.equal((await req('/api/profile','alice',{...agree,name:'New name',bio:'Blocked biography'})).status,400);
+  assert.deepEqual(f.db.prepare('SELECT name,bio FROM members WHERE uid=?').get('alice'),original);
   const draft={...agree,title:'A useful planter',body:'Build a reusable garden planter.',category:'ideas'};
-  assert.equal((await req('/api/discussions','alice',draft)).status,400);
-  verdict='error';assert.equal((await req('/api/discussions','alice',draft)).status,503);
-  assert.equal(f.db.prepare('SELECT count(*) AS n FROM discussions').get().n,0);
-  verdict='safe';const created=await req('/api/discussions','alice',draft);assert.equal(created.status,201);const id=created.data.id;
-  assert.equal((await req('/api/discussions/'+id,'alice')).status,404);
+  const flagged=await req('/api/discussions','alice',draft);assert.equal(flagged.status,201);assert.equal(flagged.data.status,'pending');
+  assert.equal((await req('/api/discussions/'+flagged.data.id,'alice')).status,404);
   assert.equal((await req('/api/mod/queue','admin')).data.discussions.length,1);
-  assert.equal((await req('/api/mod/action','admin',{type:'discussion',id,action:'approve'})).status,200);
-  const reply=await req('/api/discussions/'+id+'/replies','alice',{...agree,body:'Use recycled timber.'});assert.equal(reply.status,201);
-  const edits=[{type:'discussion',id,title:'Updated planter',body:'Add more useful project details.'},{type:'reply',id:reply.data.id,body:'Edited helpful reply.'}];
-  for(const edit of edits){
-   const before=f.db.prepare('SELECT * FROM '+(edit.type==='discussion'?'discussions':'replies')+' WHERE id=?').get(edit.id);
-   verdict='unsafe\nS1';assert.equal((await req('/api/content','alice',{...agree,...edit,action:'edit'})).status,400);
-   assert.deepEqual(f.db.prepare('SELECT * FROM '+(edit.type==='discussion'?'discussions':'replies')+' WHERE id=?').get(edit.id),before);
-   verdict='safe';assert.equal((await req('/api/content','alice',{...agree,...edit,action:'edit'})).data.status,'pending');
-  }
-  assert.ok(seen.includes('alice member\n\nPractical projects.'));assert.ok(seen.includes('Updated planter\n\nAdd more useful project details.'));assert.ok(seen.includes('Edited helpful reply.'));
-  const count=seen.length;assert.equal((await req('/api/profile','unverified',{...agree,name:'No access'})).status,403);assert.equal(seen.length,count);
-  // Existing pending posts must pass screening at approval, too.
-  verdict='error';assert.equal((await req('/api/mod/action','admin',{type:'discussion',id,action:'approve'})).status,503);
-  assert.equal(f.db.prepare('SELECT status FROM discussions WHERE id=?').get(id).status,'pending');
-  // An edit racing the model cannot inherit approval of an earlier revision.
-  f.env.AI.run=async()=>{f.db.prepare('UPDATE discussions SET body=? WHERE id=?').run('Concurrent unscreened content',id);return {response:'safe'};};
-  assert.equal((await req('/api/mod/action','admin',{type:'discussion',id,action:'approve'})).status,409);
-  assert.equal(f.db.prepare('SELECT status FROM discussions WHERE id=?').get(id).status,'pending');
+  const flaggedRow=f.db.prepare('SELECT * FROM discussions WHERE id=?').get(flagged.data.id);
+  assert.equal((await req('/api/mod/action','admin',{type:'discussion',id:flagged.data.id,action:'approve'})).status,409);
+  assert.deepEqual(f.db.prepare('SELECT * FROM discussions WHERE id=?').get(flagged.data.id),flaggedRow);
+  verdict='error';assert.equal((await req('/api/discussions','alice',draft)).status,503);
+  assert.equal(f.db.prepare('SELECT count(*) AS n FROM discussions').get().n,1);
+  verdict='safe';
+  const created=await req('/api/discussions','alice',draft);assert.equal(created.status,201);assert.equal(created.data.status,'approved');
+  const id=created.data.id;assert.equal((await req('/api/discussions/'+id,'alice')).status,200);
+  const reply=await req('/api/discussions/'+id+'/replies','alice',{...agree,body:'Use recycled timber.'});
+  assert.equal(reply.status,201);assert.equal(reply.data.status,'approved');
+  assert.equal((await req('/api/discussions/'+id,'alice')).data.replies.length,1);
+  verdict='unsafe\nS10';
+  const flaggedReply=await req('/api/discussions/'+id+'/replies','alice',{...agree,body:'Unwise reply for human review.'});
+  assert.equal(flaggedReply.data.status,'pending');
+  assert.equal((await req('/api/discussions/'+id,'alice')).data.replies.length,1);
+  // A human administrator must explicitly confirm any flagged override.
+  assert.equal((await req('/api/mod/action','admin',{type:'reply',id:flaggedReply.data.id,action:'approve'})).status,409);
+  assert.equal((await req('/api/mod/action','admin',{type:'reply',id:flaggedReply.data.id,action:'approve',confirmFlagged:true})).status,200);
+  assert.equal((await req('/api/discussions/'+id,'alice')).data.replies.length,2);
+  const prior=f.db.prepare('SELECT * FROM discussions WHERE id=?').get(id);
+  const edited=await req('/api/content','alice',{...agree,type:'discussion',id,action:'edit',title:'Updated planter',body:'More useful project details.'});
+  assert.equal(edited.data.status,'pending');
+  assert.equal((await req('/api/discussions/'+id,'alice')).status,404);
+  assert.notEqual(f.db.prepare('SELECT body FROM discussions WHERE id=?').get(id).body,prior.body);
+  verdict='safe';const revised=await req('/api/content','alice',{...agree,type:'discussion',id,action:'edit',title:'Updated planter',body:'Now with useful project details.'});
+  assert.equal(revised.data.status,'approved');assert.equal((await req('/api/discussions/'+id,'alice')).status,200);
+  const replyEdit=await req('/api/content','alice',{...agree,type:'reply',id:reply.data.id,action:'edit',body:'Updated helpful comment.'});
+  assert.equal(replyEdit.data.status,'approved');
+  assert.ok(seen.includes('alice member\n\nPractical projects.'));
+  assert.ok(seen.includes('Updated planter\n\nNow with useful project details.'));
+  assert.equal((await req('/api/profile','unverified',{...agree,name:'No access'})).status,403);
+  // The approval revision check must not publish concurrently changed content.
+  f.env.AI.run=async()=>{f.db.prepare('UPDATE discussions SET body=? WHERE id=?').run('Concurrent unscreened content',flagged.data.id);return {response:'safe'};};
+  assert.equal((await req('/api/mod/action','admin',{type:'discussion',id:flagged.data.id,action:'approve'})).status,409);
+  assert.equal(f.db.prepare('SELECT status FROM discussions WHERE id=?').get(flagged.data.id).status,'pending');
   verdict='error';assert.equal((await req('/api/content','alice',{type:'reply',id:reply.data.id,action:'delete'})).status,200);
  }finally{globalThis.fetch=oldFetch;f.db.close();}
 });
