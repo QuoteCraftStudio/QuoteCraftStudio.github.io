@@ -9,3 +9,12 @@ test('policies and consent version match the application',()=>{assert.match(read
 test('screened POST requests have a longer timeout than GET requests',()=>{const js=read('idea-hub/app.js');assert.match(js,/AbortSignal\.timeout\(data\?30000:15000\)/);});
 
 test('deployed browser and Worker scripts pass JavaScript syntax checks',()=>{for(const file of ['idea-hub/app.js','idea-hub/config.js','backend/worker.mjs','backend/moderation.mjs'])execFileSync(process.execPath,['--check',file],{stdio:'pipe'});});
+
+test('agreement appears at sign-in, not on every post, comment or profile save',()=>{
+ const js=read('idea-hub/app.js');
+ assert.equal((js.match(/agreement\(f\)/g)||[]).length,1);
+ assert.match(js,/consentProof=v\.consentProof\|\|''/);
+ assert.match(js,/X-Idea-Hub-Agreement/);
+ assert.match(read('backend/worker.mjs'),/X-Idea-Hub-Agreement/);
+ assert.match(read('backend/worker.mjs'),/crypto\.subtle\.verify\('HMAC'/);
+});
