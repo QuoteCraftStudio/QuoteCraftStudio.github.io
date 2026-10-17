@@ -2,7 +2,7 @@ import test from 'node:test';import assert from 'node:assert/strict';
 import worker,{TERMS} from '../backend/worker.mjs';import {fixture,origin} from './fixture.mjs';
 const f=fixture();globalThis.fetch=f.provider;
 const consent={agree:true,termsVersion:TERMS};let ip=0;
-async function request(path,{who='',data,site=origin,method=data?'POST':'GET',address}={}){const headers={'CF-Connecting-IP':address||'192.0.2.'+(++ip)};if(site)headers.Origin=site;if(who)headers.Authorization='Bearer '+who;if(data)headers['Content-Type']='application/json';const response=await worker.fetch(new Request('https://test.example'+path,{method,headers,body:data?JSON.stringify(data):undefined}),f.env);return {status:response.status,headers:response.headers,data:await response.json()};}
+async function request(path,{who='',data,site=origin,method=data?'POST':'GET',address,consentProof}={}){const headers={'CF-Connecting-IP':address||'192.0.2.'+(++ip)};if(consentProof)headers['X-Idea-Hub-Agreement']=consentProof;if(site)headers.Origin=site;if(who)headers.Authorization='Bearer '+who;if(data)headers['Content-Type']='application/json';const response=await worker.fetch(new Request('https://test.example'+path,{method,headers,body:data?JSON.stringify(data):undefined}),f.env);return {status:response.status,headers:response.headers,data:await response.json()};}
 async function profile(who){const r=await request('/api/profile',{who,data:{...consent,name:who+' member',bio:''}});assert.equal(r.status,200);}
 let topic,reply;
 test('health validates configured database and secrets',async()=>{assert.equal((await request('/api/health')).data.status,'ok');const r=await worker.fetch(new Request('https://test/api/health'),{});assert.equal(r.status,503);});
@@ -60,4 +60,29 @@ test('existing clients retain private review until they accept updated terms',as
  assert.equal((await request('/api/mine',{who:'alice'})).data.discussions.some(p=>p.id===old.data.id&&p.status==='pending'),true);
  const invalid=await request('/api/discussions',{who:'alice',data:{...older,termsVersion:'2025-01-01',title:'Invalid consent',body:'Should not be stored as a discussion.',category:'ideas'}});
  assert.equal(invalid.status,400);
+});
+
+test('agreement accepted once at sign-in works on profile, posts, comments and edits without repeated checkboxes',async()=>{
+ const login=await request('/api/auth/signin',{data:{...consent,email:'alice@example.test',password:'synthetic password'}});
+ assert.equal(login.status,200);
+ assert.match(login.data.consentProof,/^[a-f0-9]{64}$/);
+ const proof=login.data.consentProof;
+ const plain={category:'ideas',title:'Consent once project',body:'A simple useful community project.'};
+ assert.equal((await request('/api/discussions',{who:'alice',data:plain})).status,400);
+ assert.equal((await request('/api/discussions',{who:'alice',consentProof:'0'.repeat(64),data:plain})).status,403);
+ assert.equal((await request('/api/discussions',{who:'bob',consentProof:proof,data:plain})).status,403);
+ assert.equal((await request('/api/profile',{who:'alice',consentProof:proof,data:{name:'alice member',bio:'Updated safely without another checkbox.'}})).status,200);
+ const post=await request('/api/discussions',{who:'alice',consentProof:proof,data:plain});
+ assert.equal(post.status,201);assert.equal(post.data.status,'approved');
+ assert.equal((await request('/api/discussions/'+post.data.id)).status,200);
+ const comment=await request('/api/discussions/'+post.data.id+'/replies',{who:'alice',consentProof:proof,data:{body:'A helpful comment.'}});
+ assert.equal(comment.status,201);assert.equal(comment.data.status,'approved');
+ const edit=await request('/api/content',{who:'alice',consentProof:proof,data:{type:'discussion',id:post.data.id,action:'edit',title:'Updated consent project',body:'Updated safe project details.'}});
+ assert.equal(edit.status,200);assert.equal(edit.data.status,'approved');
+ const remove=await request('/api/content',{who:'alice',data:{type:'discussion',id:post.data.id,action:'delete'}});
+ assert.equal(remove.status,200);
+ const oldLogin=await request('/api/auth/signin',{data:{email:'alice@example.test',password:'synthetic password',agree:false,termsVersion:TERMS}});
+ assert.equal(oldLogin.status,200);assert.equal(oldLogin.data.consentProof,null);
+ const rejectedLogin=await request('/api/auth/signin',{data:{email:'alice@example.test',password:'synthetic password',agree:true,termsVersion:'invalid'}});
+ assert.equal(rejectedLogin.status,400);
 });
