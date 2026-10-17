@@ -51,3 +51,13 @@ test('flagged posts and comments stay private until reviewed, and unavailable AI
  assert.equal((await request('/api/discussions')).data.discussions.length,earlierCount);
  f.env.AI.run=async()=>({response:'safe'});
 });
+
+test('existing clients retain private review until they accept updated terms',async()=>{
+ const older={agree:true,termsVersion:'2026-10-16'};
+ const old=await request('/api/discussions',{who:'alice',data:{...older,title:'Old page submission',body:'A safe message from an open old browser tab.',category:'ideas'}});
+ assert.equal(old.status,201);assert.equal(old.data.status,'pending');
+ assert.equal((await request('/api/discussions/'+old.data.id)).status,404);
+ assert.equal((await request('/api/mine',{who:'alice'})).data.discussions.some(p=>p.id===old.data.id&&p.status==='pending'),true);
+ const invalid=await request('/api/discussions',{who:'alice',data:{...older,termsVersion:'2025-01-01',title:'Invalid consent',body:'Should not be stored as a discussion.',category:'ideas'}});
+ assert.equal(invalid.status,400);
+});
