@@ -1,5 +1,6 @@
 import {checkContentSafety, ScreeningError} from './moderation.mjs';
 export const TERMS = '2026-10-17';
+const PREVIOUS_TERMS = '2026-10-16'; // Transitional clients stay in manual review.
 export const CATEGORIES = ['ideas','projects','technology','questions'];
 class Problem extends Error { constructor(message,status=400){super(message);this.status=status;} }
 const fail=(message,status)=>{throw new Problem(message,status);};
@@ -51,7 +52,11 @@ async function member(req,env){
  if(!record)fail('Choose your display name in Profile first.',409);if(record.suspended)fail('This account is suspended. Use the account support form to appeal.',403);
  return {...u,...record};
 }
-function consent(data){if(data.agree!==true||data.termsVersion!==TERMS)fail('Accept the current Terms and Community Guidelines.');if(data.website)fail('Submission rejected.');}
+function consent(data){if(data.agree!==true||![TERMS,PREVIOUS_TERMS].includes(data.termsVersion))fail('Accept the current Terms and Community Guidelines.');if(data.website)fail('Submission rejected.');}
+async function publicationStatus(env,fields,version){
+ if(version===PREVIOUS_TERMS){await checkContentSafety(env,fields);return 'pending';}
+ return screeningStatus(env,fields);
+}
 const publicCols='d.id,d.category,d.title,d.body,d.status,d.locked,d.pinned,d.created_at,d.updated_at,d.activity_at,m.name AS author,m.id AS profile_id';
 async function publicTopic(env,target){return env.DB.prepare(`SELECT ${publicCols} FROM discussions d JOIN members m ON m.uid=d.uid WHERE d.id=? AND d.status='approved'`).bind(target).first();}
 async function audit(env,u,action,target){await env.DB.prepare('INSERT INTO audit(actor_uid,action,target,created_at) VALUES (?,?,?,?)').bind(u.uid,action,target,stamp()).run();}
@@ -112,11 +117,11 @@ async function handle(req,env){
   const content=str(data.body,replies?3:10,replies?3000:5000,'Message'),now=stamp(),newID=crypto.randomUUID();
   let publication;
   if(replies){const parent=await publicTopic(env,id(replies[1]));if(!parent)fail('Discussion not found.',404);if(parent.locked)fail('This discussion is locked.',409);
-   publication=await screeningStatus(env,[content]);
+   publication=await publicationStatus(env,[content],data.termsVersion);
    // Recheck the parent in the write to avoid posting during a lock or removal.
    const r=await env.DB.prepare("INSERT INTO replies(id,discussion_id,uid,body,status,created_at,updated_at,terms_version) SELECT ?,?,?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM discussions WHERE id=? AND status='approved' AND locked=0)").bind(newID,parent.id,u.uid,content,publication,now,now,TERMS,parent.id).run();if(!r.meta.changes)fail('Discussion is unavailable.',409);
    if(publication==='approved')await env.DB.prepare("UPDATE discussions SET activity_at=? WHERE id=? AND status='approved'").bind(now,parent.id).run();
-  }else{const title=str(data.title,4,120,'Title');if(!CATEGORIES.includes(data.category))fail('Choose a category.');publication=await screeningStatus(env,[title,content]);await env.DB.prepare('INSERT INTO discussions(id,uid,category,title,body,status,created_at,updated_at,activity_at,terms_version) VALUES (?,?,?,?,?,?,?,?,?,?)').bind(newID,u.uid,data.category,title,content,publication,now,now,now,TERMS).run();}
+  }else{const title=str(data.title,4,120,'Title');if(!CATEGORIES.includes(data.category))fail('Choose a category.');publication=await publicationStatus(env,[title,content],data.termsVersion);await env.DB.prepare('INSERT INTO discussions(id,uid,category,title,body,status,created_at,updated_at,activity_at,terms_version) VALUES (?,?,?,?,?,?,?,?,?,?)').bind(newID,u.uid,data.category,title,content,publication,now,now,now,TERMS).run();}
   return json({id:newID,status:publication},201);
  }
  if(path==='/api/mine'&&method==='GET'){
@@ -129,8 +134,8 @@ async function handle(req,env){
   if(data.action==='delete'){await env.DB.prepare(`UPDATE ${table} SET body='',status='removed',updated_at=? WHERE id=? AND uid=?`).bind(stamp(),target,u.uid).run();return json({deleted:true});}
   consent(data);const content=str(data.body,data.type==='discussion'?10:3,data.type==='discussion'?5000:3000,'Message');
   let publication;
-  if(data.type==='discussion'){const title=str(data.title,4,120,'Title');publication=await screeningStatus(env,[title,content]);const now=stamp();const updated=await env.DB.prepare("UPDATE discussions SET title=?,body=?,status=?,updated_at=?,activity_at=? WHERE id=? AND uid=? AND status!='removed' AND updated_at=? AND body=? AND title=?").bind(title,content,publication,now,now,target,u.uid,row.updated_at,row.body,row.title).run();if(!updated.meta.changes)fail('Content changed while screening. Refresh and try again.',409);}
-  else {publication=await screeningStatus(env,[content]);const now=stamp();const updated=await env.DB.prepare("UPDATE replies SET body=?,status=?,updated_at=? WHERE id=? AND uid=? AND status!='removed' AND updated_at=? AND body=?").bind(content,publication,now,target,u.uid,row.updated_at,row.body).run();if(!updated.meta.changes)fail('Content changed while screening. Refresh and try again.',409);if(publication==='approved')await env.DB.prepare("UPDATE discussions SET activity_at=? WHERE id=? AND status='approved'").bind(now,row.discussion_id).run();}
+  if(data.type==='discussion'){const title=str(data.title,4,120,'Title');publication=await publicationStatus(env,[title,content],data.termsVersion);const now=stamp();const updated=await env.DB.prepare("UPDATE discussions SET title=?,body=?,status=?,updated_at=?,activity_at=? WHERE id=? AND uid=? AND status!='removed' AND updated_at=? AND body=? AND title=?").bind(title,content,publication,now,now,target,u.uid,row.updated_at,row.body,row.title).run();if(!updated.meta.changes)fail('Content changed while screening. Refresh and try again.',409);}
+  else {publication=await publicationStatus(env,[content],data.termsVersion);const now=stamp();const updated=await env.DB.prepare("UPDATE replies SET body=?,status=?,updated_at=? WHERE id=? AND uid=? AND status!='removed' AND updated_at=? AND body=?").bind(content,publication,now,target,u.uid,row.updated_at,row.body).run();if(!updated.meta.changes)fail('Content changed while screening. Refresh and try again.',409);if(publication==='approved')await env.DB.prepare("UPDATE discussions SET activity_at=? WHERE id=? AND status='approved'").bind(now,row.discussion_id).run();}
   return json({saved:true,status:publication});
  }
  if(path==='/api/report'&&method==='POST'){
