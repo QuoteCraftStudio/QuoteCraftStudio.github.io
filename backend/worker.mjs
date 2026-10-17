@@ -53,6 +53,28 @@ async function member(req,env){
  return {...u,...record};
 }
 function consent(data){if(data.agree!==true||![TERMS,PREVIOUS_TERMS].includes(data.termsVersion))fail('Accept the current Terms and Community Guidelines.');if(data.website)fail('Submission rejected.');}
+// The user accepts once at sign-in or registration; the API returns an HMAC
+// proof bound to the short-lived Firebase idToken and this agreement version.
+// No browser storage, new account tables, or credentials are required.
+async function agreementKey(env){return crypto.subtle.importKey('raw',new TextEncoder().encode(env.RATE_LIMIT_SALT),{name:'HMAC',hash:'SHA-256'},false,['sign','verify']);}
+const agreementMessage=token=>new TextEncoder().encode('idea-hub-agreement:'+TERMS+':'+token);
+async function createAgreementProof(env,token){
+ const signed=new Uint8Array(await crypto.subtle.sign('HMAC',await agreementKey(env),agreementMessage(token)));
+ return Array.from(signed,b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function agreementVersion(req,env,u,data){
+ if(data.website)fail('Submission rejected.');
+ const proof=req.headers.get('X-Idea-Hub-Agreement');
+ if(proof){
+  if(!/^[a-f0-9]{64}$/.test(proof))fail('Please sign in again and accept the agreement.',403);
+  const bytes=new Uint8Array(proof.match(/../g).map(x=>parseInt(x,16)));
+  if(!await crypto.subtle.verify('HMAC',await agreementKey(env),bytes,agreementMessage(u.token)))fail('Please sign in again and accept the agreement.',403);
+  return TERMS;
+ }
+ // Transitional support for users with an older webpage still open.
+ consent(data);
+ return data.termsVersion;
+}
 async function publicationStatus(env,fields,version){
  if(version===PREVIOUS_TERMS){await checkContentSafety(env,fields);return 'pending';}
  return screeningStatus(env,fields);
@@ -77,9 +99,11 @@ async function handle(req,env){
    const email=str(data.email,3,254,'Email');if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))fail('Enter a valid email.');
    const password=data.password;if(typeof password!=='string'||password.length<(action==='signup'?12:1)||password.length>128)fail('Password does not meet the length requirement.');
    if(action==='signup'){consent(data);await limited(env,`signup:${ip}`,3);}
+   if(action==='signin'&&data.agree===true)consent(data);
    const auth=await firebase(env,action==='signup'?'signUp':'signInWithPassword',{email,password,returnSecureToken:true});
    let verificationSent=false;if(action==='signup'){try{await firebase(env,'sendOobCode',{requestType:'VERIFY_EMAIL',idToken:auth.idToken});verificationSent=true;}catch{/* Account can sign in and resend if provider email is temporarily limited. */}}
-   return json({idToken:auth.idToken,expiresIn:auth.expiresIn,verificationSent});
+   const consentProof=data.agree===true&&data.termsVersion===TERMS?await createAgreementProof(env,auth.idToken):null;
+   return json({idToken:auth.idToken,expiresIn:auth.expiresIn,verificationSent,consentProof});
   }
   if(action==='reset'){str(data.email,3,254,'Email');await limited(env,`email:${ip}`,5);try{await firebase(env,'sendOobCode',{requestType:'PASSWORD_RESET',email:data.email});}catch{/* Prevent account enumeration. */}return json({sent:true});}
   if(action==='verify'){const u=await identity(req,env,false);await limited(env,`verify:${u.uid}`,3);await firebase(env,'sendOobCode',{requestType:'VERIFY_EMAIL',idToken:u.token});return json({sent:true});}
@@ -90,7 +114,7 @@ async function handle(req,env){
   return json({verified:u.verified,profile:record||null,isAdmin:admin(u,env),isModerator:admin(u,env)||record?.role==='moderator'});
  }
  if(path==='/api/profile'&&method==='POST'){
-  const u=await identity(req,env),data=await body(req);consent(data);const name=str(data.name,2,50,'Display name'),bio=typeof data.bio==='string'?data.bio.trim():'';if(bio.length>300)fail('Bio is too long.');
+  const u=await identity(req,env),data=await body(req);await agreementVersion(req,env,u,data);const name=str(data.name,2,50,'Display name'),bio=typeof data.bio==='string'?data.bio.trim():'';if(bio.length>300)fail('Bio is too long.');
   const prior=await env.DB.prepare('SELECT suspended FROM members WHERE uid=?').bind(u.uid).first();if(prior?.suspended)fail('Account suspended.',403);
   await limited(env,`profile:${u.uid}`,10);await checkContentSafety(env,[name,bio]);const now=stamp();
   await env.DB.prepare('INSERT INTO members(uid,id,name,bio,created_at,updated_at) VALUES (?,?,?,?,?,?) ON CONFLICT(uid) DO UPDATE SET name=excluded.name,bio=excluded.bio,updated_at=excluded.updated_at').bind(u.uid,crypto.randomUUID(),name,bio,now,now).run();return json({saved:true});
@@ -113,15 +137,15 @@ async function handle(req,env){
   return json({discussion,replies:rows.results.slice(0,50),hasMore:rows.results.length>50});
  }
  if(method==='POST'&&(path==='/api/discussions'||replies)){
-  const u=await member(req,env),data=await body(req);consent(data);await limited(env,`post:${u.uid}`,10);
+  const u=await member(req,env),data=await body(req);const acceptedVersion=await agreementVersion(req,env,u,data);await limited(env,`post:${u.uid}`,10);
   const content=str(data.body,replies?3:10,replies?3000:5000,'Message'),now=stamp(),newID=crypto.randomUUID();
   let publication;
   if(replies){const parent=await publicTopic(env,id(replies[1]));if(!parent)fail('Discussion not found.',404);if(parent.locked)fail('This discussion is locked.',409);
-   publication=await publicationStatus(env,[content],data.termsVersion);
+   publication=await publicationStatus(env,[content],acceptedVersion);
    // Recheck the parent in the write to avoid posting during a lock or removal.
    const r=await env.DB.prepare("INSERT INTO replies(id,discussion_id,uid,body,status,created_at,updated_at,terms_version) SELECT ?,?,?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM discussions WHERE id=? AND status='approved' AND locked=0)").bind(newID,parent.id,u.uid,content,publication,now,now,TERMS,parent.id).run();if(!r.meta.changes)fail('Discussion is unavailable.',409);
    if(publication==='approved')await env.DB.prepare("UPDATE discussions SET activity_at=? WHERE id=? AND status='approved'").bind(now,parent.id).run();
-  }else{const title=str(data.title,4,120,'Title');if(!CATEGORIES.includes(data.category))fail('Choose a category.');publication=await publicationStatus(env,[title,content],data.termsVersion);await env.DB.prepare('INSERT INTO discussions(id,uid,category,title,body,status,created_at,updated_at,activity_at,terms_version) VALUES (?,?,?,?,?,?,?,?,?,?)').bind(newID,u.uid,data.category,title,content,publication,now,now,now,TERMS).run();}
+  }else{const title=str(data.title,4,120,'Title');if(!CATEGORIES.includes(data.category))fail('Choose a category.');publication=await publicationStatus(env,[title,content],acceptedVersion);await env.DB.prepare('INSERT INTO discussions(id,uid,category,title,body,status,created_at,updated_at,activity_at,terms_version) VALUES (?,?,?,?,?,?,?,?,?,?)').bind(newID,u.uid,data.category,title,content,publication,now,now,now,TERMS).run();}
   return json({id:newID,status:publication},201);
  }
  if(path==='/api/mine'&&method==='GET'){
@@ -132,10 +156,10 @@ async function handle(req,env){
   const u=await member(req,env),data=await body(req);if(!['discussion','reply'].includes(data.type)||!['edit','delete'].includes(data.action))fail('Invalid action.');const table=data.type==='discussion'?'discussions':'replies';const target=id(data.id);
   const row=await env.DB.prepare(`SELECT * FROM ${table} WHERE id=? AND uid=? AND status!='removed'`).bind(target,u.uid).first();if(!row)fail('Content not found.',404);await limited(env,`edit:${u.uid}`,30);
   if(data.action==='delete'){await env.DB.prepare(`UPDATE ${table} SET body='',status='removed',updated_at=? WHERE id=? AND uid=?`).bind(stamp(),target,u.uid).run();return json({deleted:true});}
-  consent(data);const content=str(data.body,data.type==='discussion'?10:3,data.type==='discussion'?5000:3000,'Message');
+  const acceptedVersion=await agreementVersion(req,env,u,data);const content=str(data.body,data.type==='discussion'?10:3,data.type==='discussion'?5000:3000,'Message');
   let publication;
-  if(data.type==='discussion'){const title=str(data.title,4,120,'Title');publication=await publicationStatus(env,[title,content],data.termsVersion);const now=stamp();const updated=await env.DB.prepare("UPDATE discussions SET title=?,body=?,status=?,updated_at=?,activity_at=? WHERE id=? AND uid=? AND status!='removed' AND updated_at=? AND body=? AND title=?").bind(title,content,publication,now,now,target,u.uid,row.updated_at,row.body,row.title).run();if(!updated.meta.changes)fail('Content changed while screening. Refresh and try again.',409);}
-  else {publication=await publicationStatus(env,[content],data.termsVersion);const now=stamp();const updated=await env.DB.prepare("UPDATE replies SET body=?,status=?,updated_at=? WHERE id=? AND uid=? AND status!='removed' AND updated_at=? AND body=?").bind(content,publication,now,target,u.uid,row.updated_at,row.body).run();if(!updated.meta.changes)fail('Content changed while screening. Refresh and try again.',409);if(publication==='approved')await env.DB.prepare("UPDATE discussions SET activity_at=? WHERE id=? AND status='approved'").bind(now,row.discussion_id).run();}
+  if(data.type==='discussion'){const title=str(data.title,4,120,'Title');publication=await publicationStatus(env,[title,content],acceptedVersion);const now=stamp();const updated=await env.DB.prepare("UPDATE discussions SET title=?,body=?,status=?,updated_at=?,activity_at=? WHERE id=? AND uid=? AND status!='removed' AND updated_at=? AND body=? AND title=?").bind(title,content,publication,now,now,target,u.uid,row.updated_at,row.body,row.title).run();if(!updated.meta.changes)fail('Content changed while screening. Refresh and try again.',409);}
+  else {publication=await publicationStatus(env,[content],acceptedVersion);const now=stamp();const updated=await env.DB.prepare("UPDATE replies SET body=?,status=?,updated_at=? WHERE id=? AND uid=? AND status!='removed' AND updated_at=? AND body=?").bind(content,publication,now,target,u.uid,row.updated_at,row.body).run();if(!updated.meta.changes)fail('Content changed while screening. Refresh and try again.',409);if(publication==='approved')await env.DB.prepare("UPDATE discussions SET activity_at=? WHERE id=? AND status='approved'").bind(now,row.discussion_id).run();}
   return json({saved:true,status:publication});
  }
  if(path==='/api/report'&&method==='POST'){
@@ -185,7 +209,7 @@ async function handle(req,env){
 }
 export default {
  async fetch(req,env){let response;try{response=await handle(req,env);}catch(e){const known=e instanceof Problem||e instanceof ScreeningError;response=json({error:known?e.message:'Service temporarily unavailable. Please try again.'},known?e.status:503);}
-  const headers=new Headers(response.headers);if(req.headers.get('Origin')===env.SITE_ORIGIN){headers.set('Access-Control-Allow-Origin',env.SITE_ORIGIN);headers.set('Vary','Origin');headers.set('Access-Control-Allow-Headers','Content-Type, Authorization');headers.set('Access-Control-Allow-Methods','GET, POST, OPTIONS');}
+  const headers=new Headers(response.headers);if(req.headers.get('Origin')===env.SITE_ORIGIN){headers.set('Access-Control-Allow-Origin',env.SITE_ORIGIN);headers.set('Vary','Origin');headers.set('Access-Control-Allow-Headers','Content-Type, Authorization, X-Idea-Hub-Agreement');headers.set('Access-Control-Allow-Methods','GET, POST, OPTIONS');}
   return new Response(response.body,{status:response.status,headers});
  },
  async scheduled(_event,env,ctx){ctx.waitUntil(env.DB.prepare('DELETE FROM limits WHERE expires<?').bind(Math.floor(Date.now()/1000)-86400).run());}
