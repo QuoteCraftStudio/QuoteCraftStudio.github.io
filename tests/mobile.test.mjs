@@ -14,6 +14,11 @@ test('mobile app is compact, responsive and works on the actual forum origin',()
  assert.match(html,/id="nav-post"/);
  assert.match(html,/id="fullscreen-toggle"/);
  assert.match(html,/id="layout-toggle"/);
+ assert.match(html,/class="donate-tiny"/);
+ assert.match(html,/https:\/\/www\.paypal\.com\/ncp\/payment\/W82M2TVHZ4KUY/);
+ assert.match(html,/href="\.\/readme\.html"/);
+ assert.match(html,/href="\.\.\/privacy\.html"/);
+ assert.match(read('idea-hub/mobile/readme.html'),/Privacy Policy/);
  assert.match(style,/max-width:500px/);
  assert.match(style,/\.app-shell\.wide/);
  assert.match(html,/https:\/\/idea-hub-github\.quotecraft300\.workers\.dev/);
