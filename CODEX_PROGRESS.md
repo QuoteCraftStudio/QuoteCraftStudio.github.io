@@ -112,3 +112,11 @@ See AGENTS.md. Preserve verified work, use small changes, and document checkpoin
 - No D1 schema changes. Backend issues `consentProof` HMAC bound to current Firebase idToken and current terms using existing `RATE_LIMIT_SALT`; frontend holds it only in tab memory and sends header `X-Idea-Hub-Agreement`. CORS updated, sign-out/401 clears the proof. Fake/wrong-user proof rejected. Old frontend tabs still work via legacy per-action checkbox until reload; previous terms still keep content private.
 - Updated Terms, Privacy, Guidelines and added test covering one sign-in, profile update, posting, commenting, editing and forgery rejection. GitHub Actions Idea Hub checks passed run `39078720373` after fixing an independent shared-fixture rate-limit collision (older run failures predated this fix).
 - Added `backend/DEPLOY_ONCE_PER_SIGNIN.md` with backend-first safe deployment. **NOT deployed**: backend must deploy via Wrangler first, then GitHub Pages PR can merge. No live Cloudflare/D1 changes, secrets, email data, or accounts modified.
+
+## Idea Hub Mobile — October 17, 2026
+- Created a lightweight, **mobile-specific PWA** under `idea-hub/mobile/`, hosted within the existing GitHub Pages origin and connected to existing forum API. No Cloudflare backend, Firebase secrets, D1 or billing changes.
+- Files added: `index.html`, `mobile.css`, `mobile.js`, `manifest.webmanifest`, `icon.svg`, `sw.js`, `README.md`, plus `tests/mobile.test.mjs`.
+- Compact 500px desktop phone-width view, category dropdown, search, discussion cards, post/comment composer, own posts, account/verification, reporting, compact/expanded and fullscreen toggles; accessibility and no token persistence.
+- Reuses `../config.js` and `../session-agreement.js` to preserve the currently working agreement-once sign-in and consent-proof/fallback behavior. Static-only service worker does not cache account data.
+- Linked the mobile route unobtrusively in the main Idea Hub footer. Browser installation via Add to Home Screen; not an Android APK.
+- GitHub Actions tests initially passed on feature branch as of `dfbac5f1`. Before release, re-run checks after final changes; merge and verify GitHub Pages, then test on a phone with an existing verified member account. No live test posts created by automated tests.
