@@ -1,0 +1,46 @@
+name: Idea Hub Mobile signed release
+on:
+  push:
+    branches: [main]
+    paths:
+      - "idea-hub/mobile/**"
+      - "idea-hub/config.js"
+      - "idea-hub/session-agreement.js"
+      - "idea-hub/privacy.html"
+      - "idea-hub/terms.html"
+      - "idea-hub/guidelines.html"
+      - ".github/workflows/idea-hub-mobile-signed-release.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+  attestations: write
+jobs:
+  signed-package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Test site and mobile app
+        run: npm test
+      - name: Prepare mobile web release and checksums
+        run: |
+          mkdir -p release
+          zip -q -r release/IdeaHub-Mobile-Web-v1.0.1.zip idea-hub/mobile idea-hub/config.js idea-hub/session-agreement.js idea-hub/terms.html idea-hub/guidelines.html idea-hub/privacy.html idea-hub/safety.html
+          cd release
+          sha256sum IdeaHub-Mobile-Web-v1.0.1.zip > SHA256SUMS.txt
+      - name: Sign release build provenance with Sigstore
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: release/IdeaHub-Mobile-Web-v1.0.1.zip
+      - name: Publish verified downloadable release package
+        uses: actions/upload-artifact@v4
+        with:
+          name: IdeaHub-Mobile-Web-v1.0.1
+          path: |
+            release/IdeaHub-Mobile-Web-v1.0.1.zip
+            release/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 90
