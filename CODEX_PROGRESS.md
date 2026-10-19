@@ -112,3 +112,6 @@ See AGENTS.md. Preserve verified work, use small changes, and document checkpoin
 - Production version before change: d9280675-c99e-4ca7-9980-2d9c036fabdb. Worker/settings and private D1 export saved locally outside Git; no credentials/data included in commits.
 - 51 live-baseline tests pass; Wrangler dry-run passes (32.46 KiB, DB/AI/SITE_ORIGIN bindings). Actual deployment and OIDC smoke test still pending.
 
+
+- Live OIDC smoke rejected a real GitHub JWT because this repository uses immutable subjects (owner/repo IDs), while staged code expected legacy names. Require the exact configured immutable subject; legacy/wrong owner/wrong repository/wrong ref tests added. 55 production-baseline tests pass; redeployment pending.
+

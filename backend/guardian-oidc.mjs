@@ -12,6 +12,10 @@ const REPO_ID = '1422829682';
 const OWNER_ID = '337505330';
 const REF = 'refs/heads/main';
 const WORKFLOW_REF = REPO + '/.github/workflows/quotecraft-guardian.yml@' + REF;
+// Verified against the owning repository's current OIDC subject settings.
+// GitHub's immutable subject binds the names AND IDs; legacy name-only subjects
+// are intentionally denied for this repository.
+const SUBJECT = `repo:QuoteCraftStudio@${OWNER_ID}/QuoteCraft-App-Archives@${REPO_ID}:ref:${REF}`;
 const allowedEvents = new Set(['schedule', 'workflow_dispatch']);
 export class GuardianAuthError extends Error {
   constructor(){super('Guardian access denied');this.status=403;}
@@ -41,7 +45,7 @@ function verifyClaims(c,now){
      c.repository!==REPO || String(c.repository_id)!==REPO_ID ||
      String(c.repository_owner_id)!==OWNER_ID || c.ref!==REF ||
      c.workflow_ref!==WORKFLOW_REF ||
-     c.sub!==`repo:${REPO}:ref:${REF}` ||
+     c.sub!==SUBJECT ||
      !allowedEvents.has(c.event_name) || c.runner_environment!=='github-hosted')deny();
 }
 export async function authorizeGuardianRead(req,{fetchJwks=fetch,now=Math.floor(Date.now()/1000)}={}){
