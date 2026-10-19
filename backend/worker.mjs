@@ -1,4 +1,5 @@
 import {checkContentSafety, ScreeningError} from './moderation.mjs';
+import {authorizeGuardianRead, readGuardianPrivateQueue, GuardianAuthError} from './guardian-oidc.mjs';
 export const TERMS = '2026-10-17';
 const PREVIOUS_TERMS = '2026-10-16'; // Transitional clients stay in manual review.
 export const CATEGORIES = ['ideas','projects','technology','questions'];
@@ -89,6 +90,12 @@ async function handle(req,env){
  const configured=env.DB&&env.FIREBASE_API_KEY&&typeof env.RATE_LIMIT_SALT==='string'&&env.RATE_LIMIT_SALT.length>=32&&String(env.ADMIN_UIDS||'').trim();
  if(path==='/api/health'&&method==='GET'){if(configured)await env.DB.prepare('SELECT m.uid,d.id,r.id,p.id FROM members m,discussions d,replies r,reports p WHERE 0').all();return json({status:configured?'ok':'setup_needed',termsVersion:TERMS},configured?200:503);}
  if(!configured)fail('Idea Hub is awaiting backend setup.',503);
+ // Read-only machine access for the separately hosted Guardian. This is NOT
+ // the human moderator login or any content-changing endpoint.
+ if(path==='/api/guardian/queue'&&method==='GET'){
+  await authorizeGuardianRead(req);
+  return json(await readGuardianPrivateQueue(env));
+ }
  if(!['GET','POST'].includes(method))fail('Method not allowed.',405);
  if(method==='POST'&&origin!==env.SITE_ORIGIN)fail('This origin is not allowed.',403);
  const ip=req.headers.get('CF-Connecting-IP');if(!ip)fail('Abuse protection unavailable.',503);
@@ -208,7 +215,7 @@ async function handle(req,env){
  fail('Not found.',404);
 }
 export default {
- async fetch(req,env){let response;try{response=await handle(req,env);}catch(e){const known=e instanceof Problem||e instanceof ScreeningError;response=json({error:known?e.message:'Service temporarily unavailable. Please try again.'},known?e.status:503);}
+ async fetch(req,env){let response;try{response=await handle(req,env);}catch(e){const known=e instanceof Problem||e instanceof ScreeningError||e instanceof GuardianAuthError;response=json({error:known?e.message:'Service temporarily unavailable. Please try again.'},known?e.status:503);}
   const headers=new Headers(response.headers);if(req.headers.get('Origin')===env.SITE_ORIGIN){headers.set('Access-Control-Allow-Origin',env.SITE_ORIGIN);headers.set('Vary','Origin');headers.set('Access-Control-Allow-Headers','Content-Type, Authorization, X-Idea-Hub-Agreement');headers.set('Access-Control-Allow-Methods','GET, POST, OPTIONS');}
   return new Response(response.body,{status:response.status,headers});
  },
