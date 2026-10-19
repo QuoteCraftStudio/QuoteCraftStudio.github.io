@@ -106,3 +106,9 @@ See AGENTS.md. Preserve verified work, use small changes, and document checkpoin
 - Added `keep_vars = true` to tracked Wrangler config to protect dashboard-managed variables. Official Cloudflare Wrangler docs confirm dashboard secrets survive deployments. Created `backend/DEPLOY_INSTANT_POSTS.md` with full preflight, deployment, rollback and smoke test instructions.
 - GitHub Actions `Idea Hub checks` run `39075827820` passed at commit `ea6f7084`. Draft PR #5 stays UNMERGED. Live API `/api/health` still returned `ok`, `termsVersion:2026-10-16` and the public discussion feed remained healthy/empty.
 - NEXT: Run Wrangler account verification, dry run, deploy **backend first** from feature branch; validate production health 2026-10-17. Only then merge PR #5 frontend and test newly published content. Do not ask user to repeat Cloudflare browser login; the missing capability is an authenticated executable deployment environment (e.g. local Windows terminal), not dashboard access.
+
+## Guardian private read endpoint — 2026-10-19
+- Live source-map backup matches commit 5a304c65a8e210238421e3e80c1f4d32c9c11ca2, not current main (which has undeployed consent changes). Created this isolated release branch from exact live source and applied only Guardian OIDC module, GET route, error type and tests. Human authentication, frontend, moderation writes and schemas preserved.
+- Production version before change: d9280675-c99e-4ca7-9980-2d9c036fabdb. Worker/settings and private D1 export saved locally outside Git; no credentials/data included in commits.
+- 51 live-baseline tests pass; Wrangler dry-run passes (32.46 KiB, DB/AI/SITE_ORIGIN bindings). Actual deployment and OIDC smoke test still pending.
+
