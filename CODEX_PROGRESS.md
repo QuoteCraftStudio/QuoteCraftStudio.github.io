@@ -129,3 +129,8 @@ See AGENTS.md. Preserve verified work, use small changes, and document checkpoin
 - Created a small WHC `public_html/idea-hub/mobile/index.html` landing/redirect ZIP package with installation instructions and SHA-256 checksum. The bridge is a prepared **artifact, not uploaded to WHC**. WHC cPanel access or an authorized manual upload is still needed, as is a small optional homepage link.
 - `https://quotecraftstudio.ca/` currently responds over HTTPS. GitHub Pages HTTPS and WHC HTTPS certificates are separately maintained by their providers; no new SSL certificate was issued in this task.
 - Existing working forum API, Firebase auth, production data, CORS, account configuration, and main site's home page were not changed. Focused GitHub Actions tests passed on feature branch. Verify signature workflow and GitHub Pages after merging.
+
+## Guardian immutable identity correction — 2026-10-19
+- Matched the exact GitHub repository OIDC immutable subject (ownerID337505330/repositoryID1422829682). Legacy name-only subjects are denied; identity signature/time/audience/repo/workflow checks remain intact. New tests cover wrong immutable IDs/ref and legacy subject.
+- Production deployment uses separate release/guardian-live-worker-20261019 based on actual live source commit5a304c6; this draft branch retains future-main consent work without deploying it.
+

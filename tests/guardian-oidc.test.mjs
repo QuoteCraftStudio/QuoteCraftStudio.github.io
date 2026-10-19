@@ -6,7 +6,7 @@ const enc=v=>Buffer.from(typeof v==='string'?v:JSON.stringify(v)).toString('base
 const NOW=1792370000;
 const repo='QuoteCraftStudio/QuoteCraft-App-Archives';
 const claims={iss:'https://token.actions.githubusercontent.com',aud:'quotecraft-guardian-idea-hub-private-queue-v1',
- sub:`repo:${repo}:ref:refs/heads/main`,repository:repo,repository_id:'1422829682',repository_owner_id:'337505330',
+ sub:'repo:QuoteCraftStudio@337505330/QuoteCraft-App-Archives@1422829682:ref:refs/heads/main',repository:repo,repository_id:'1422829682',repository_owner_id:'337505330',
  ref:'refs/heads/main',workflow_ref:`${repo}/.github/workflows/quotecraft-guardian.yml@refs/heads/main`,
  event_name:'schedule',runner_environment:'github-hosted',iat:NOW-60,nbf:NOW-60,exp:NOW+240};
 const keypair=await webcrypto.subtle.generateKey({name:'RSASSA-PKCS1-v1_5',modulusLength:2048,publicExponent:new Uint8Array([1,0,1]),hash:'SHA-256'},true,['sign','verify']);
@@ -23,6 +23,10 @@ async function auth({c=claims,header={alg:'RS256',kid:'test-key'},method='GET',j
 }
 test('valid OIDC signed identity permits read',async()=>assert.equal(await auth(),true));
 for(const [label,edit] of [
+ ['legacy name-only subject',{sub:`repo:${repo}:ref:refs/heads/main`}],
+ ['wrong immutable subject owner',{sub:'repo:QuoteCraftStudio@1/QuoteCraft-App-Archives@1422829682:ref:refs/heads/main'}],
+ ['wrong immutable subject repository',{sub:'repo:QuoteCraftStudio@337505330/QuoteCraft-App-Archives@1:ref:refs/heads/main'}],
+ ['wrong immutable subject branch',{sub:'repo:QuoteCraftStudio@337505330/QuoteCraft-App-Archives@1422829682:ref:refs/heads/other'}],
  ['wrong audience',{aud:'other'}],['wrong repository',{repository:'attacker/repo'}],
  ['wrong workflow',{workflow_ref:'QuoteCraftStudio/QuoteCraft-App-Archives/.github/workflows/evil.yml@refs/heads/main'}],
  ['wrong branch',{ref:'refs/heads/test'}],['wrong repository id',{repository_id:'123'}],
