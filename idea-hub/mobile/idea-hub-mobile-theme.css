@@ -43,3 +43,5 @@
 :root[data-effective-theme="dark"] .donate-tiny{background:#21344f;border-color:#475c79;color:#a4f0e7}
 :root[data-effective-theme="dark"] .donate-note{color:#afc3d2}
 @media(max-width:390px){.header{padding-left:12px;padding-right:12px}.brand{gap:6px}.brand-text strong{font-size:15px}.brand-text small{font-size:8px}.header-actions{gap:3px}.icon-btn{width:33px;height:33px}.idea-theme-control select{width:71px}}
+.idea-auto-receipt{margin:12px 0 4px;padding:12px 14px;border-left:3px solid #2b9d99;border-radius:10px;background:#e6f8f3;color:#2c5758;font-size:.82rem;line-height:1.5}
+:root[data-effective-theme="dark"] .idea-auto-receipt{background:#203e52;border-left-color:#8ee3dc;color:#e7f8fc}
