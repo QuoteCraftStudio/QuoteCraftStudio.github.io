@@ -129,3 +129,15 @@ See AGENTS.md. Preserve verified work, use small changes, and document checkpoin
 - Created a small WHC `public_html/idea-hub/mobile/index.html` landing/redirect ZIP package with installation instructions and SHA-256 checksum. The bridge is a prepared **artifact, not uploaded to WHC**. WHC cPanel access or an authorized manual upload is still needed, as is a small optional homepage link.
 - `https://quotecraftstudio.ca/` currently responds over HTTPS. GitHub Pages HTTPS and WHC HTTPS certificates are separately maintained by their providers; no new SSL certificate was issued in this task.
 - Existing working forum API, Firebase auth, production data, CORS, account configuration, and main site's home page were not changed. Focused GitHub Actions tests passed on feature branch. Verify signature workflow and GitHub Pages after merging.
+
+
+## QuoteCraft Studio visitor count setup — October 24, 2026 (review branch)
+- User registered `quotecraftstudio.ca` and `quotecraftstudio.github.io` as separate Web Analytics sites in the same Cloudflare account. The web analytics snippets shown in user's screenshots identify different site tags. Registration alone does not activate visit counting.
+- Branch `feature/cloudflare-visit-counts-20261024` is based on verified `main`; production is unchanged until merge.
+- Added the Cloudflare site tag for `quotecraftstudio.github.io` to the GitHub Pages landing page, Idea Hub desktop forum, mobile PWA page, and informational/policy pages. The legacy guidelines redirect is left unchanged.
+- Only the required CSP domains were added: `static.cloudflareinsights.com` (scripts) and `cloudflareinsights.com` (analytics submissions). Existing forum Worker/API policies remain intact.
+- Updated Idea Hub privacy policy to disclose aggregate privacy-friendly Cloudflare Web Analytics; no member data, auth, or database code changed. Added `tests/analytics.test.mjs` for page/CSP/privacy checks.
+- GitHub Actions `Idea Hub checks` validates Node tests on every branch push; verify the latest test run before merging. After merge verify live beacon requests and dashboard counts, ideally from an actual browser because scripts do not run for text-only fetches.
+- Main WHC-hosted `https://quotecraftstudio.ca/` has NOT been modified: its separate Cloudflare snippet still needs inserting into WHC's live HTML, with backups and validation, without changing DNS or hosting.
+- The user ultimately wants a tiny Android phone counter showing date and aggregate visits for all websites. Cloudflare GraphQL `rumPageloadEventsAdaptiveGroups` may provide per-day count under appropriate account permissions; confirm free-plan access and proper server-side token security before building the phone UI. Never place a privileged Cloudflare API token in client-side code.
+- No domains, SSL settings, billing, worker deployment or DNS changed.
