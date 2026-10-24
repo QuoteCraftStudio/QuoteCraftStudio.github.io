@@ -124,3 +124,6 @@ dialog::backdrop{background:#172a4cb3;backdrop-filter:blur(4px)}
 :root[data-effective-theme="dark"] .idea-theme-control{color:#def7fb;background:#2b3d5e}
 :root[data-effective-theme="dark"] .idea-theme-control select{background:#132138;color:#f3f9ff;border-color:#68829b}
 @media(max-width:540px){.idea-theme-control span{display:none}.idea-theme-control{padding:3px}.idea-theme-control select{max-width:85px}}
+/* Non-deceptive, public acknowledgement: never implies a human response. */
+.idea-auto-receipt{margin:18px 0 4px;padding:13px 15px;border:1px solid #b5dad8;border-left:4px solid #0296a0;border-radius:11px;background:#ecfaf7;color:#245b64;font-size:.88rem;line-height:1.55}
+:root[data-effective-theme="dark"] .idea-auto-receipt{background:#1f4351;border-color:#426e7e;border-left-color:#83e3e2;color:#e0f6f9}
