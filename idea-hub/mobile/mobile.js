@@ -107,7 +107,7 @@ function threadCard(data){
  if(!d.locked)actions.append(btn('＋ Write comment',()=>composeReply(d.id),''));
  else actions.append(el('span','date','Discussion locked'));
  actions.append(btn('Report',()=>reportDialog('discussion',d.id),'secondary'));
- card.append(actions);return card;
+ card.append(actions);if(!d.locked)card.append(el('p','idea-auto-receipt','Automatic acknowledgement · Your contribution is visible in Idea Hub. Members and moderators can reply, but a personal response is not guaranteed.'));return card;
 }
 function replyCard(d){
  const card=el('article','reply');
@@ -266,7 +266,7 @@ function composeDiscussion(){
  f.append(el('p','sheet-help','Be kind and avoid private information. Safe posts publish immediately; flagged posts wait for moderator review.'));
  submit(f,'Post discussion',async data=>{
   const result=await api('/api/discussions',data);closeSheet();
-  if(result.status==='approved'){msg('Your discussion is live!');await loadThread(result.id);}
+  if(result.status==='approved'){msg('Your discussion is published. Thank you for sharing; this is an automatic confirmation. Check here for replies.');await loadThread(result.id);}
   else{msg('Your post is private until a moderator reviews it.');await mine();}
  });
  root.append(f);
@@ -279,7 +279,7 @@ function composeReply(id){
  submit(f,'Post comment',async data=>{
   const result=await api('/api/discussions/'+encodeURIComponent(id)+'/replies',data);
   closeSheet();
-  if(result.status==='approved'){msg('Your comment is live!');await loadThread(id);}
+  if(result.status==='approved'){msg('Your comment is published. Thank you for helping the community.');await loadThread(id);}
   else{msg('Your comment is private until a moderator reviews it.');await mine();}
  });
  root.append(f);
