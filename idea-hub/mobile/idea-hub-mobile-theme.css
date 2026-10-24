@@ -1,0 +1,45 @@
+/* Idea Hub mobile: system, light, dark; one safe presentation-only layer. */
+.idea-theme-control{display:flex;align-items:center;gap:5px;padding:3px;border-radius:8px;background:#274c46;color:#e5f6f1;font-size:11px;font-weight:800}
+.idea-theme-control span{display:none}.idea-theme-control select{width:78px;min-height:35px;margin:0;padding:6px 5px;border:1px solid #739c91;border-radius:8px;background:#15362f;color:#f6fff9;font-size:11px}
+:root[data-effective-theme="dark"]{color-scheme:dark;--text:#e6f4ff;--muted:#b5c6d7;--stroke:#3a516a;--surface:#1b2a46;--forest:#16203a;--deep:#182b47;--mint:#8de5e1;background:#0e172c;color:#e8f5ff}
+:root[data-effective-theme="dark"] body{background:#0e172c;color:#e8f5ff}
+:root[data-effective-theme="dark"] .app-shell{background:#111e37;box-shadow:0 14px 80px #04081778}
+:root[data-effective-theme="dark"] .header{background:#101b33;color:#fff;border-bottom:1px solid #3d526e}
+:root[data-effective-theme="dark"] .brand-mark{border-color:#75cfcc;background:#2d425b;color:#e4fbfd}
+:root[data-effective-theme="dark"] .brand-text small{color:#b6cedc}
+:root[data-effective-theme="dark"] .icon-btn{border-color:#506684;color:#e5f7fc}
+:root[data-effective-theme="dark"] .welcome{background:linear-gradient(145deg,#1c2953,#31305c 80%);color:#f2f8ff}
+:root[data-effective-theme="dark"] .welcome em,:root[data-effective-theme="dark"] .eyebrow{color:#98eee8}
+:root[data-effective-theme="dark"] .welcome>p{color:#c6dceb}
+:root[data-effective-theme="dark"] .btn{background:#2a3b59;border-color:#48637f;color:#e9f6ff}
+:root[data-effective-theme="dark"] .btn.primary{background:#85e4dd;border-color:#85e4dd;color:#173443}
+:root[data-effective-theme="dark"] .btn.ghost{background:transparent;color:#eaf6fb;border-color:#8293ac}
+:root[data-effective-theme="dark"] .content{color:#ecf5ff;background:transparent}
+:root[data-effective-theme="dark"] .toolbar-heading h2{color:#eef7ff}
+:root[data-effective-theme="dark"] .small-pill{color:#8fe1e0;background:#264356;border-color:#3f6e7d}
+:root[data-effective-theme="dark"] .filters{background:#1a2a45;border-color:#344c67}
+:root[data-effective-theme="dark"] .filter-label{color:#c4d7e9}
+:root[data-effective-theme="dark"] .filter-label input,:root[data-effective-theme="dark"] .filter-label select,:root[data-effective-theme="dark"] input,:root[data-effective-theme="dark"] textarea,:root[data-effective-theme="dark"] select{background:#13243d;color:#edf7ff;border-color:#506986}
+:root[data-effective-theme="dark"] input::placeholder,:root[data-effective-theme="dark"] textarea::placeholder{color:#abbfd2}
+:root[data-effective-theme="dark"] .discussion{background:#1c2d49;border-color:#3b536c;color:#eaf4ff}
+:root[data-effective-theme="dark"] .discussion h3,:root[data-effective-theme="dark"] .title-btn{color:#f1f6ff}
+:root[data-effective-theme="dark"] .excerpt,:root[data-effective-theme="dark"] .post-body,:root[data-effective-theme="dark"] .reply p,:root[data-effective-theme="dark"] .date{color:#c2d1e3}
+:root[data-effective-theme="dark"] .cat{background:#214e56;color:#9ff4ef}
+:root[data-effective-theme="dark"] .item-bottom{border-color:#425977;color:#bcd1e4}
+:root[data-effective-theme="dark"] .actions button,:root[data-effective-theme="dark"] .actions button.secondary{background:#273b59;border-color:#4c6781;color:#ecf8ff}
+:root[data-effective-theme="dark"] .loading,:root[data-effective-theme="dark"] .empty{background:#1a304a;border-color:#4b6984;color:#c9d9e8}
+:root[data-effective-theme="dark"] .pagination .btn{background:#283c5a;color:#e9f4ff}
+:root[data-effective-theme="dark"] .bottom-note,:root[data-effective-theme="dark"] .bottom-note p{color:#c7d8e9}
+:root[data-effective-theme="dark"] .bottom-nav{background:#15243a;border-color:#3c5570}
+:root[data-effective-theme="dark"] .nav-btn{color:#bcd2e1}
+:root[data-effective-theme="dark"] .nav-btn.selected{color:#8ce7e0}
+:root[data-effective-theme="dark"] dialog{background:#1b2a46;color:#eef7ff;border-color:#536b89}
+:root[data-effective-theme="dark"] .sheet-head h2{color:#eff7ff}
+:root[data-effective-theme="dark"] .sheet-form label{color:#c8d9e7}
+:root[data-effective-theme="dark"] .sheet-help,:root[data-effective-theme="dark"] .sheet-status{color:#c5d8e9}
+:root[data-effective-theme="dark"] .sheet-form button{background:#74cfcf;color:#0c2942}
+:root[data-effective-theme="dark"] .text-button,:root[data-effective-theme="dark"] a{color:#8ae4e0}
+:root[data-effective-theme="dark"] .donation-footer{border-color:#314a67}
+:root[data-effective-theme="dark"] .donate-tiny{background:#21344f;border-color:#475c79;color:#a4f0e7}
+:root[data-effective-theme="dark"] .donate-note{color:#afc3d2}
+@media(max-width:390px){.header{padding-left:12px;padding-right:12px}.brand{gap:6px}.brand-text strong{font-size:15px}.brand-text small{font-size:8px}.header-actions{gap:3px}.icon-btn{width:33px;height:33px}.idea-theme-control select{width:71px}}
