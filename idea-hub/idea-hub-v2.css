@@ -1,0 +1,70 @@
+/* QuoteCraft Studio Idea Hub v2 — GitHub Pages visual refresh.
+   Safe presentation layer only. The existing app.js, backend, control IDs,
+   moderation/auth flows and account data remain untouched. 2026-10-23. */
+:root{color-scheme:light;--muted:#566679;--line:#dce5eb;--surface:#fff;--accent:#007f89;font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;color:#12294d;background:#fffaf1}
+body{color:#12294d;background:radial-gradient(circle at 5% 14%,#d5f8f6aa,transparent 23%),radial-gradient(circle at 94% 12%,#ffdfd6ba,transparent 27%),linear-gradient(180deg,#fffaf1 0%,#f1f9f8 50%,#f9f4ff 100%);line-height:1.55}
+a{color:#007e88}
+button{color:#15304f;background:#fff;border:1px solid #bdcfda;border-radius:13px;font-weight:750;box-shadow:0 2px 0 #91b7b321;transition:transform .16s,background .16s,border-color .16s}
+button:hover{background:#edf9f9;border-color:#008e96;transform:translateY(-1px)}
+button.primary,.primary{background:#ee665e;color:#fff;border-color:#e05f5a;box-shadow:0 4px 0 #be474b;font-weight:850}
+button.primary:hover{background:#d94c50;color:white}
+button.danger{color:#a41c2f;border-color:#d5a0a8}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #a45cff;outline-offset:3px}
+.skip{background:#fff;color:#102947;border-radius:10px}
+.top{max-width:1300px;min-height:84px;padding:18px 32px;border-bottom:1px solid #e0e6dd}
+.brand{font-size:1.4rem;font-weight:900;letter-spacing:-.048em;color:#133255}
+.brand span{color:#03959c;font-weight:900}
+.top nav button{color:#173c58;border:1px solid #cadddf;background:#fff;padding:10px 14px}
+.top nav #auth-nav{color:#fff;background:#ee665e;border-color:#ee665e;box-shadow:0 3px 0 #bc5354}
+main{max-width:1300px;padding:0 32px 72px}
+.hero{max-width:none;min-height:295px;position:relative;padding:56px 340px 42px 0;isolation:isolate}
+.hero:before{content:'💡';position:absolute;right:120px;top:25px;font-size:120px;line-height:1;filter:drop-shadow(0 18px 24px #e7b56255);transform:rotate(-11deg)}
+.hero:after{content:'✦  ideas   •   projects   •   help';position:absolute;right:2px;bottom:65px;display:block;max-width:255px;text-align:center;background:#fff;border:1px solid #e5dcea;border-radius:22px;padding:12px 18px;color:#784fb4;font-size:.8rem;font-weight:900;box-shadow:0 11px 24px #5b739525;transform:rotate(5deg)}
+.eyebrow{color:#067f88;font-size:.76rem;letter-spacing:.15em}
+h1{font-size:clamp(3rem,6.2vw,5.55rem);line-height:1.05;letter-spacing:-.064em;color:#10274e;font-weight:950;margin:0 0 20px}
+h1 span{color:#05929c}
+.hero>p:not(.eyebrow){font-size:clamp(1.05rem,1.7vw,1.25rem);color:#4f6578;max-width:740px}
+.hero-actions{margin-top:25px;gap:24px}
+.hero-actions a{font-size:.9rem;font-weight:800;color:#006e7a}
+.workspace{grid-template-columns:245px minmax(0,1fr);gap:25px;border-top:0;padding:0;align-items:start}
+.workspace aside{border:1px solid #dce7ed;border-radius:23px;background:#fff;box-shadow:0 8px 28px #204f7010;padding:23px}
+aside h2{color:#173d5b;letter-spacing:.09em}
+#categories{gap:9px}
+#categories button{background:#f9fcfe;border:1px solid #dce6f0;color:#193854;border-radius:13px;font-weight:750;box-shadow:none}
+#categories button:hover{background:#eaf9f8;border-color:#14a8a9}
+#categories button[aria-pressed=true]{color:#fff;background:#048e9a;border-color:#048e9a}
+.aside-note{margin-top:27px;border-radius:17px;background:linear-gradient(145deg,#e4fff4,#ecf3ff);border-color:#cce6e4;color:#385367}
+.aside-note>span{color:#eb7862}
+.aside-note p{color:#516e72}
+.section-heading{margin:4px 0 25px}
+h2{font-size:1.55rem;letter-spacing:-.032em;color:#142e50}
+.pill,.tag{border-color:#c4d6e8;color:#0b7e87;background:#e4f9f5}
+.filters{background:#fff;border:1px solid #dae7ee;border-radius:18px;padding:17px;margin-bottom:17px;box-shadow:0 7px 27px #163e6a0b;align-items:end}
+.filters label{color:#4c6475;font-weight:800}
+input,select,textarea{color:#213b57;background:#fff;border:1px solid #c5d3dd;border-radius:11px}
+input::placeholder,textarea::placeholder{color:#657b8e}
+.empty{background:linear-gradient(145deg,#fff,#f6fdfe);color:#617585;border-color:#bcd7de;border-radius:18px}
+.empty h3{color:#193858}
+.discussion{padding:25px;background:white;border:1px solid #dfebeb;border-radius:17px;margin-bottom:12px;box-shadow:0 7px 23px #1142660e;transition:transform .16s,box-shadow .16s}
+.discussion:hover{transform:translateY(-1px);box-shadow:0 12px 28px #11426618}
+.discussion h3{font-size:1.24rem;color:#172e52}
+.title-link{color:#153c61;background:none;box-shadow:none}
+.title-link:hover{color:#028e96;background:none}
+.excerpt,.content{color:#4c6077}
+.meta{color:#667b8a}
+.text-button{background:none!important;color:#007f90;box-shadow:none}
+#status:not(:empty){border-color:#9dd9d4;background:#e9fbf8;color:#175b68}
+.reply{border-color:#e5e8ec}
+footer{max-width:1300px;color:#526d7b;border-top:1px solid #dce5e6}
+footer strong{color:#154359}
+footer nav button{color:#055e6e;background:white}
+dialog{background:#fffdf9;color:#183652;border:1px solid #d8e4e8;border-radius:21px;box-shadow:0 22px 85px #1d315740}
+dialog::backdrop{background:#172a4cb3;backdrop-filter:blur(4px)}
+.dialog-top button{color:#264963;background:#f4f8fb}
+.form p{color:#516b7b}
+#dialog-status:not(:empty){background:#ecf9fa;color:#115a67}
+.policy h1{color:#1b3c5c}.policy p,.policy li{color:#526878}
+@media(max-width:1000px){.hero{padding-right:255px}.hero:before{right:60px;font-size:108px}.hero:after{right:4px;bottom:44px;max-width:190px}.workspace{grid-template-columns:225px minmax(0,1fr);gap:18px}}
+@media(max-width:850px){.hero{padding:42px 0 36px;min-height:0}.hero:before,.hero:after{display:none}.workspace{grid-template-columns:1fr;gap:21px}.workspace aside{padding:16px}.aside-note{display:none}#categories{flex-direction:row;flex-wrap:wrap}#categories button{padding:9px 12px}.filters{flex-wrap:wrap}}
+@media(max-width:540px){.top{padding:16px;gap:11px}.brand{font-size:1.22rem}.top nav{gap:7px}.top nav button{font-size:.8rem;padding:7px 10px}main{padding:0 16px 46px}.hero{padding:34px 0}.hero h1{font-size:clamp(2.65rem,10vw,3.5rem)}.hero>p:not(.eyebrow){font-size:1rem}.hero-actions{gap:13px}.workspace aside{border-radius:17px}.filters{padding:13px}.discussion{padding:18px}footer{padding:25px 16px}.section-heading h2{font-size:1.4rem}}
+@media(prefers-reduced-motion:reduce){button,.discussion{transition:none}}
