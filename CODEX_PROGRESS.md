@@ -141,3 +141,16 @@ See AGENTS.md. Preserve verified work, use small changes, and document checkpoin
 - Main WHC-hosted `https://quotecraftstudio.ca/` has NOT been modified: its separate Cloudflare snippet still needs inserting into WHC's live HTML, with backups and validation, without changing DNS or hosting.
 - The user ultimately wants a tiny Android phone counter showing date and aggregate visits for all websites. Cloudflare GraphQL `rumPageloadEventsAdaptiveGroups` may provide per-day count under appropriate account permissions; confirm free-plan access and proper server-side token security before building the phone UI. Never place a privileged Cloudflare API token in client-side code.
 - No domains, SSL settings, billing, worker deployment or DNS changed.
+
+
+## Idea Hub three-colour mood picker — October 29, 2026 (review branch only)
+
+- Owner requested a small, immediately visible top-row "Choose your color mood" picker with exactly **Ocean Mint**, **Sunset Pop** and **Berry Glow**, matching the existing QuoteCraftStudio.ca homepage demonstration.
+- Source colours were verified in the QuoteCraft homepage backup in the connected Drive: Mint `#55d9bd/#6e92f7`, Sunset `#fa8e91/#ec9e3c`, Berry `#9e77ee/#ed7cb1`.
+- Started from protected `main` commit `5ff908a6ece5a61b3f4bc4d4e29ad21d6435ca16`. Verified recovery branch `backup/idea-hub-before-mood-picker-20261029` has the original shared theme file. All edits remain in `feature/idea-hub-three-color-moods-20261029`; production was not published.
+- Modified only appearance files: shared `idea-hub/idea-hub-theme.js`, desktop `idea-hub/idea-hub-v2.css`, mobile `idea-hub/mobile/idea-hub-mobile-theme.css`, landing `index.html`, and mobile information page `idea-hub/mobile/readme.html`. Added `tests/mood-picker.test.mjs`.
+- The shared picker is injected immediately below the top header on the landing page, forum, policy pages and mobile pages. It is compact and responsive, displays a mini gradient swatch per button, and remembers choices by page path. All pages default to light Ocean Mint; the pre-existing optional System/Light/Dark selector remains on pages that already had it. Selecting a colour switches out of dark mode to show that palette.
+- No changes to account logins, posting, moderation, databases, Cloudflare, WHC, DNS, API credentials or service configuration. No paid service added.
+- Verification: JavaScript parsed successfully, interactive mocked-DOM tests exercised mood choices, dark preference, and localStorage, and GitHub Actions `Idea Hub checks` passed for the corrected landing+forum+mobile regression-test commit `12aa3ebcab75b99d215526de0bf9e000db48daa2` (run `40988458393`).
+- **Not yet verified:** actual visual layout in a browser on desktop/mobile; live deployment and visitor-facing behavior. Do not merge until the owner approves publication. Next action: review branch preview in a browser, adjust only confirmed visual issues, then obtain explicit authorization to publish.
+- Recovery: keep `main` and backup branch untouched; revert the nonproduction feature branch or start again from `backup/idea-hub-before-mood-picker-20261029` if necessary.
