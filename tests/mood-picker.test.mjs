@@ -26,7 +26,7 @@ function page(path, saved = {}) {
     documentElement: new Element('html'),
     createElement: name => new Element(name),
     getElementById: id => ids.get(id) || null,
-    querySelector: selector => selector === 'header.top, .app-shell > header.header' ? header : selector === '.top nav' ? nav : null
+    querySelector: selector => selector === 'header.top, .app-shell > header.header, body > nav' ? header : selector === '.top nav' ? nav : null
   };
   const window = {
     location: { pathname: path },
@@ -68,6 +68,10 @@ test('forum, all four policies and mobile load the shared script', () => {
   }
   assert.match(readFileSync('idea-hub/mobile/index.html', 'utf8'), /\.\.\/idea-hub-theme\.js/);
   assert.equal(page('/idea-hub/mobile/').buttons.length, 3);
+  assert.equal(page('/idea-hub/mobile/readme.html').buttons.length, 3);
+  assert.equal(page('/').buttons.length, 3);
+  assert.match(readFileSync('index.html', 'utf8'), /idea-hub\/idea-hub-theme\\.js/);
+  assert.match(readFileSync('idea-hub/mobile/readme.html', 'utf8'), /idea-hub-theme\\.js/);
 });
 
 test('desktop and mobile each define the same three swatch colors and page themes', () => {
