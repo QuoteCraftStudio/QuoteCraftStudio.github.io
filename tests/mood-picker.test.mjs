@@ -70,8 +70,8 @@ test('forum, all four policies and mobile load the shared script', () => {
   assert.equal(page('/idea-hub/mobile/').buttons.length, 3);
   assert.equal(page('/idea-hub/mobile/readme.html').buttons.length, 3);
   assert.equal(page('/').buttons.length, 3);
-  assert.match(readFileSync('index.html', 'utf8'), /idea-hub\/idea-hub-theme\\.js/);
-  assert.match(readFileSync('idea-hub/mobile/readme.html', 'utf8'), /idea-hub-theme\\.js/);
+  assert.ok(readFileSync('index.html', 'utf8').includes('idea-hub/idea-hub-theme.js'));
+  assert.ok(readFileSync('idea-hub/mobile/readme.html', 'utf8').includes('idea-hub-theme.js'));
 });
 
 test('desktop and mobile each define the same three swatch colors and page themes', () => {
