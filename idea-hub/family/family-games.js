@@ -258,7 +258,7 @@
           squares[index] = turn;
           const winner = lines.some(line => line.every(i => squares[i] === turn));
           if (winner) { finished = true; status.textContent = `🎉 ${turn} wins! Well played!`; }
-          else if (squares.every(Boolean)) { finished = true; status.textContent = 'It's a tie! Play again?'; }
+          else if (squares.every(Boolean)) { finished = true; status.textContent = "It's a tie! Play again?"; }
           else { turn = turn === 'X' ? 'O' : 'X'; status.textContent = `${turn}'s turn.`; }
           draw();
         });
