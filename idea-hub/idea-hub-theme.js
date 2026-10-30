@@ -72,7 +72,7 @@
 
   function buildMoodBar() {
     if (document.getElementById('idea-moods')) return;
-    const header = document.querySelector('header.top, .app-shell > header.header');
+    const header = document.querySelector('header.top, .app-shell > header.header, body > nav');
     if (!header) return;
     const bar = document.createElement('section');
     bar.id = 'idea-moods';
