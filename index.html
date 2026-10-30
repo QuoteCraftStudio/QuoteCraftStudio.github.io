@@ -13,7 +13,34 @@ main{max-width:1100px;margin:auto;padding:60px 26px 80px}.hero{text-align:center
 .about{margin-top:70px;background:#111d30;border:1px solid #293951;border-radius:20px;padding:30px;text-align:center}.about p{max-width:720px;margin:auto;color:#b8c6d8}
 footer{border-top:1px solid #243247;text-align:center;padding:28px;color:#8191a7;font-size:.9rem}footer a{color:#9fb5cf;margin:0 6px}
 @media(max-width:800px){.grid{grid-template-columns:1fr 1fr}main{padding-top:35px}}@media(max-width:520px){.grid{grid-template-columns:1fr}.navlink{display:none}}
-</style></head>
+
+/* Match the forum's three compact colour moods on the Idea Hub landing page. */
+:root{color-scheme:light}
+:root[data-mood="mint"],:root:not([data-mood]){--mood-a:#55d9bd;--mood-b:#6e92f7;--mood-ink:#00747e;--mood-start:#effef8;--mood-end:#edf1ff;--mood-border:#cce6e5}
+:root[data-mood="sunset"]{--mood-a:#fa8e91;--mood-b:#ec9e3c;--mood-ink:#a33c48;--mood-start:#fff8ec;--mood-end:#ffeadc;--mood-border:#efcfb9}
+:root[data-mood="violet"]{--mood-a:#9e77ee;--mood-b:#ed7cb1;--mood-ink:#653ba4;--mood-start:#faf3ff;--mood-end:#fff0f9;--mood-border:#e3c8ef}
+:root body{background:radial-gradient(circle at 7% 18%,var(--mood-a) 0,transparent 30%),radial-gradient(circle at 93% 12%,var(--mood-b) 0,transparent 32%),linear-gradient(165deg,var(--mood-start),#fffdfb 52%,var(--mood-end));background-attachment:fixed;color:#163353}
+:root .brand, :root .navlink{color:#163353}
+:root .brand span,:root .eyebrow{color:var(--mood-ink)}
+:root h1{background:linear-gradient(90deg,#173457,var(--mood-ink));-webkit-background-clip:text;background-clip:text;color:transparent}
+:root .lead,:root .sub,:root .card p,:root .about p{color:#425f74}
+:root .cta{background:var(--mood-ink);box-shadow:0 6px 18px #14394c28;color:#fff}
+:root .cta:hover{filter:brightness(.9)}
+:root .card,:root .about{background:#ffffffed;border-color:var(--mood-border);color:#163353}
+:root .card:hover{border-color:var(--mood-ink)}
+:root footer{color:#576e7f;border-color:var(--mood-border)}
+:root footer a{color:var(--mood-ink)}
+.idea-mood-bar{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:8px;max-width:1100px;margin:0 auto;padding:5px 26px 6px;font:800 12px/1.3 Inter,system-ui,sans-serif;color:#294f61}
+.idea-mood-buttons{display:flex;gap:5px;flex-wrap:wrap}
+.idea-mood-choice{display:inline-flex;align-items:center;gap:6px;min-height:35px;padding:5px 10px;border:1px solid #c3dbe2;border-radius:999px;background:#ffffffde;color:#23425a;font:800 11px/1.2 Inter,system-ui,sans-serif;cursor:pointer}
+.idea-mood-choice[aria-pressed="true"]{outline:2px solid var(--mood-ink);outline-offset:1px}
+.idea-mood-choice:focus-visible{outline:3px solid #775bcb;outline-offset:2px}
+.idea-mood-swatch{display:inline-block;flex:none;width:14px;height:14px;border-radius:50%;border:1px solid #ffffffba;background:linear-gradient(125deg,var(--swatch-a),var(--swatch-b))}
+.idea-mood-choice[data-mood-option="mint"]{--swatch-a:#55d9bd;--swatch-b:#6e92f7}
+.idea-mood-choice[data-mood-option="sunset"]{--swatch-a:#fa8e91;--swatch-b:#ec9e3c}
+.idea-mood-choice[data-mood-option="violet"]{--swatch-a:#9e77ee;--swatch-b:#ed7cb1}
+@media(max-width:550px){.idea-mood-bar{justify-content:center;padding:6px 12px}.idea-mood-bar>strong{font-size:11px}.idea-mood-choice{font-size:10px;padding:5px 8px}}
+</style><script src="./idea-hub/idea-hub-theme.js" defer></script></head>
 <body>
 <nav><a class="brand" href="https://quotecraftstudio.ca/" aria-label="QuoteCraft Studio main website">QuoteCraft <span>Studio</span></a><a class="navlink" href="/idea-hub/">Enter Idea Hub →</a></nav>
 <main>
