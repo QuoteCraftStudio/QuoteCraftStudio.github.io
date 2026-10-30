@@ -157,3 +157,17 @@ dialog::backdrop{background:#172a4cb3;backdrop-filter:blur(4px)}
 :root[data-effective-theme="light"][data-mood] button.primary:hover,:root[data-effective-theme="light"][data-mood] .top nav #auth-nav:hover{filter:brightness(.92)}
 :root[data-effective-theme="light"][data-mood] .idea-mood-choice[aria-pressed="true"]{border-color:var(--mood-strong)!important;box-shadow:0 0 0 2px var(--mood-border)!important}
 @media(max-width:650px){.idea-mood-bar{justify-content:flex-start;padding:6px 16px}.idea-mood-bar>strong{font-size:11px}.idea-mood-choice{padding:5px 8px!important;font-size:10px!important}}
+
+/* Simple Family Fun forum entry, keeping existing discussion functions unchanged. */
+.family-top-link{font-size:.8rem;font-weight:850;text-decoration:none;white-space:nowrap;background:#fff7e8;border:1px solid #e7cfa7;padding:8px 10px;border-radius:11px;color:#6d4f13}
+.family-feature{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:0 0 22px;padding:16px 20px;background:#ffffffd9;border:1px solid var(--mood-border,#cfe2df);border-radius:17px}
+.family-feature h2{font-size:1.15rem;margin:0 0 3px}
+.family-feature p{color:#566d7e;margin:0;font-size:.87rem}
+.family-feature-links{display:flex;gap:8px;flex-wrap:wrap}
+.family-feature-links a{padding:9px 12px;border-radius:11px;background:var(--mood-strong,#087984);color:#fff;text-decoration:none;font-weight:850;font-size:.82rem}
+.family-feature-links a:focus-visible,.family-top-link:focus-visible{outline:3px solid #916ac8;outline-offset:2px}
+:root[data-effective-theme="dark"] .family-top-link{background:#334055;border-color:#69819b;color:#eef7ff}
+:root[data-effective-theme="dark"] .family-feature{background:#1d2d49;border-color:#435974}
+:root[data-effective-theme="dark"] .family-feature p{color:#c2d1e2}
+:root[data-effective-theme="dark"] .family-feature-links a{background:#8bdcdb;color:#152d3b}
+@media(max-width:540px){.family-feature{padding:13px}.family-feature-links a{font-size:.76rem}.family-top-link{padding:6px 8px;font-size:.75rem}}
