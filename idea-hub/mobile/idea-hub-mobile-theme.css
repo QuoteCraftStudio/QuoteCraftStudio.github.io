@@ -45,3 +45,32 @@
 @media(max-width:390px){.header{padding-left:12px;padding-right:12px}.brand{gap:6px}.brand-text strong{font-size:15px}.brand-text small{font-size:8px}.header-actions{gap:3px}.icon-btn{width:33px;height:33px}.idea-theme-control select{width:71px}}
 .idea-auto-receipt{margin:12px 0 4px;padding:12px 14px;border-left:3px solid #2b9d99;border-radius:10px;background:#e6f8f3;color:#2c5758;font-size:.82rem;line-height:1.5}
 :root[data-effective-theme="dark"] .idea-auto-receipt{background:#203e52;border-left-color:#8ee3dc;color:#e7f8fc}
+
+/* The same three colour moods in the existing Idea Hub mobile interface. */
+.app-shell>.idea-mood-bar{display:flex;align-items:center;justify-content:center;gap:5px;flex-wrap:wrap;padding:7px 8px;font-size:10px;font-weight:750;background:#f4faf8;color:#234b4c;border-bottom:1px solid #d9eae3}
+.idea-mood-bar>strong{font-size:10px;white-space:nowrap}
+.idea-mood-buttons{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:4px}
+.idea-mood-choice{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:32px;padding:5px 7px;font:800 10px/1.2 system-ui,sans-serif;color:#214247;background:#fff;border:1px solid #bfd9d5;border-radius:999px;white-space:nowrap}
+.idea-mood-choice[aria-pressed="true"]{outline:2px solid #348d89;outline-offset:1px}
+.idea-mood-swatch{width:12px;height:12px;flex:none;border-radius:50%;background:linear-gradient(125deg,var(--swatch-a),var(--swatch-b));border:1px solid #ffffff8c}
+.idea-mood-choice[data-mood-option="mint"]{--swatch-a:#55d9bd;--swatch-b:#6e92f7}
+.idea-mood-choice[data-mood-option="sunset"]{--swatch-a:#fa8e91;--swatch-b:#ec9e3c}
+.idea-mood-choice[data-mood-option="violet"]{--swatch-a:#9e77ee;--swatch-b:#ed7cb1}
+:root[data-effective-theme="dark"] .app-shell>.idea-mood-bar{background:#1d3452;color:#e9f5ff;border-color:#46617c}
+:root[data-effective-theme="dark"] .idea-mood-choice{background:#253b58;color:#e8f5ff;border-color:#5a7891}
+:root[data-effective-theme="light"][data-mood="mint"]{--mood-a:#55d9bd;--mood-b:#6e92f7;--mood-deep:#185b62;--mood-tint:#e8fcf6;--mood-end:#f1f5ff;--mood-border:#c2e5e6}
+:root[data-effective-theme="light"][data-mood="sunset"]{--mood-a:#fa8e91;--mood-b:#ec9e3c;--mood-deep:#8d3f4e;--mood-tint:#fff0e5;--mood-end:#ffe4e0;--mood-border:#f4c4b9}
+:root[data-effective-theme="light"][data-mood="violet"]{--mood-a:#9e77ee;--mood-b:#ed7cb1;--mood-deep:#653e92;--mood-tint:#f5ebff;--mood-end:#ffecf8;--mood-border:#dfc5f0}
+:root[data-effective-theme="light"][data-mood]{color-scheme:light;--forest:var(--mood-deep);--deep:var(--mood-deep);--stroke:var(--mood-border);background:var(--mood-tint)}
+:root[data-effective-theme="light"][data-mood] body{background:linear-gradient(155deg,var(--mood-tint),var(--mood-end));color:#1d3534}
+:root[data-effective-theme="light"][data-mood] .app-shell{background:linear-gradient(180deg,var(--mood-tint),#fff 34%,var(--mood-end) 100%)}
+:root[data-effective-theme="light"][data-mood] .header{background:var(--mood-deep)}
+:root[data-effective-theme="light"][data-mood] .app-shell>.idea-mood-bar{background:var(--mood-tint);border-color:var(--mood-border)}
+:root[data-effective-theme="light"][data-mood] .idea-mood-choice[aria-pressed="true"]{outline-color:var(--mood-deep)}
+:root[data-effective-theme="light"][data-mood] .welcome{background:linear-gradient(145deg,var(--mood-deep),var(--mood-b));color:#fff}
+:root[data-effective-theme="light"][data-mood] .filters,:root[data-effective-theme="light"][data-mood] .discussion,:root[data-effective-theme="light"][data-mood] .loading,:root[data-effective-theme="light"][data-mood] .empty{background:#ffffffed;border-color:var(--mood-border)}
+:root[data-effective-theme="light"][data-mood] .small-pill,:root[data-effective-theme="light"][data-mood] .cat{background:var(--mood-tint);color:var(--mood-deep)}
+:root[data-effective-theme="light"][data-mood] .btn.primary,:root[data-effective-theme="light"][data-mood] .nav-btn.selected{background:var(--mood-deep);border-color:var(--mood-deep);color:#fff}
+:root[data-effective-theme="light"][data-mood] .bottom-nav{border-color:var(--mood-border);background:#ffffffef}
+:root[data-effective-theme="light"][data-mood] .nav-btn.selected{border-radius:8px}
+@media(max-width:390px){.app-shell>.idea-mood-bar{padding:6px 4px}.idea-mood-buttons{gap:3px}.idea-mood-choice{font-size:9px;padding:5px}.idea-mood-bar>strong{font-size:9px}}
