@@ -536,6 +536,20 @@
       .tool-btn { font-size: 9px; padding: 6px 2px; }
       .workspace { padding: 16px 8px; }
     }
+  
+    /* PDF Studio document and print controls */
+    .pdf-new-controls { display:inline-flex; align-items:center; gap:5px; }
+    #new-template { max-width:124px; border-radius:8px; padding:8px 5px; background:var(--panel-dark); color:var(--text); border:1px solid var(--line); font-size:12px; }
+    #print-preview-modal[hidden] { display:none !important; }
+    #print-preview-modal { position:fixed; inset:0; z-index:120; display:flex; flex-direction:column; background:#101827; color:#fff; }
+    .preview-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; padding:12px 18px; background:#19243a; border-bottom:1px solid #344058; }
+    .preview-header h2 { margin:0; font-size:17px; font-weight:750; }
+    .preview-actions { display:flex; flex-wrap:wrap; gap:8px; }
+    #preview-frame { width:100%; flex:1; min-height:0; border:0; background:white; }
+    .preview-status { font-size:12px; color:#d6e0f2; padding:4px 18px; background:#19243a; }
+    .top-actions { flex-wrap:wrap; }
+    @media(max-width:920px) { header { height:auto; min-height:60px; flex-wrap:wrap; padding:10px; } .top-actions { justify-content:center; } }
+
   </style>
 </head>
 <body>
@@ -574,6 +588,16 @@
         📂 Open File
         <input type="file" id="pdf-input" accept=".pdf,.docx,.xlsx,.xls,.csv,.txt,.md,.png,.jpg,.jpeg,.webp,.bmp">
       </label>
+      <div class="pdf-new-controls" aria-label="Create document">
+        <select id="new-template" aria-label="New document template">
+          <option value="blank">Blank page</option>
+          <option value="letter">Business letter</option>
+          <option value="invoice">Simple invoice</option>
+        </select>
+        <button class="btn btn-file" id="new-document" title="Create a new PDF">＋ New</button>
+      </div>
+      <button class="btn btn-file" id="preview-pdf" title="Preview the finished PDF">👁 Preview</button>
+      <button class="btn btn-file" id="print-pdf" title="Print the finished PDF">🖨 Print</button>
       <button class="btn coral" id="ocr-btn">🔍 Run OCR</button>
       <button class="btn primary" id="save-pdf">💾 Export PDF</button>
     </div>
@@ -670,6 +694,20 @@
       </div>
     </main>
   </div>
+
+
+  <!-- Print preview displays the actual exported PDF, including annotations. -->
+  <section id="print-preview-modal" role="dialog" aria-modal="true" aria-label="PDF print preview" hidden>
+    <div class="preview-header">
+      <h2>PDF Print Preview</h2>
+      <div class="preview-actions">
+        <button class="btn primary" id="preview-print-action">🖨 Print</button>
+        <button class="btn btn-file" id="preview-close">✕ Close</button>
+      </div>
+    </div>
+    <div class="preview-status" id="preview-status" role="status">Preparing document…</div>
+    <iframe id="preview-frame" title="Document preview"></iframe>
+  </section>
 
   <!-- MULTI-TAB SIGNATURE & VAULT MODAL -->
   <div class="modal-overlay" id="sig-modal">
@@ -1452,46 +1490,145 @@
       return cvs.toDataURL('image/png');
     }
 
+
+    // Single PDF export pipeline for Save, Preview and Print:
+    // edits, signature images and ink are applied to every page before output.
+    async function buildEditedPdfBytes() {
+      if (!pdfBytes || !pdfDoc) throw new Error('Open or create a PDF first.');
+      const pdf = await PDFLib.PDFDocument.load(pdfBytes);
+      const total = pdf.getPageCount();
+      for (let i = 1; i <= total; i++) {
+        const srcPage = await pdfDoc.getPage(i);
+        const overlay = await makeOverlay(i, srcPage.getViewport({ scale: 2 }));
+        if (!overlay) continue;
+        const target = pdf.getPage(i - 1);
+        const { width, height } = target.getSize();
+        const image = await pdf.embedPng(overlay);
+        const rotation = ((target.getRotation().angle % 360) + 360) % 360;
+        const placements = {
+          0:   { x: 0, y: 0, width, height },
+          90:  { x: 0, y: height, width: height, rotate: PDFLib.degrees(-90) },
+          180: { x: width, y: height, width, height, rotate: PDFLib.degrees(-180) },
+          270: { x: width, y: 0, width: height, height: width, rotate: PDFLib.degrees(90) }
+        };
+        target.drawImage(image, placements[rotation] || placements[0]);
+      }
+      return await pdf.save();
+    }
+
+    let previewUrl = null;
+    const previewDialog = document.getElementById('print-preview-modal');
+    const previewFrame = document.getElementById('preview-frame');
+    const previewStatus = document.getElementById('preview-status');
+    const previewPrint = document.getElementById('preview-print-action');
+    function closePrintPreview() {
+      previewDialog.hidden = true;
+      previewFrame.removeAttribute('src');
+      if (previewUrl) { URL.revokeObjectURL(previewUrl); previewUrl = null; }
+    }
+    document.getElementById('preview-close').onclick = closePrintPreview;
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && !previewDialog.hidden) closePrintPreview();
+    });
+    async function showPrintPreview(printWhenReady = false) {
+      if (!pdfDoc) { alert('Open or create a document first.'); return; }
+      const sourceButton = document.getElementById(printWhenReady ? 'print-pdf' : 'preview-pdf');
+      sourceButton.disabled = true;
+      previewPrint.disabled = true;
+      previewStatus.textContent = 'Preparing every page with your edits…';
+      try {
+        const bytes = await buildEditedPdfBytes();
+        if (previewUrl) URL.revokeObjectURL(previewUrl);
+        previewUrl = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+        previewDialog.hidden = false;
+        previewFrame.onload = () => {
+          previewStatus.textContent = 'Ready to preview or print · ' + pdfDoc.numPages + ' page(s)';
+          previewPrint.disabled = false;
+          if (printWhenReady) printPreviewDocument();
+        };
+        previewFrame.src = previewUrl + '#toolbar=1';
+      } catch (err) {
+        previewStatus.textContent = 'Preview failed: ' + err.message;
+        alert('Unable to preview PDF: ' + err.message);
+      } finally { sourceButton.disabled = false; }
+    }
+    function printPreviewDocument() {
+      if (previewDialog.hidden || !previewFrame.src) return;
+      try { previewFrame.contentWindow.focus(); previewFrame.contentWindow.print(); }
+      catch (err) {
+        alert('Use the Print button in the PDF preview viewer, or press Ctrl+P while it is focused.');
+      }
+    }
+    previewPrint.onclick = printPreviewDocument;
+    document.getElementById('preview-pdf').onclick = () => showPrintPreview(false);
+    document.getElementById('print-pdf').onclick = () => showPrintPreview(true);
+
+    // New PDF templates are editable using the existing Text and Pen tools.
+    document.getElementById('new-document').onclick = async () => {
+      const button = document.getElementById('new-document');
+      button.disabled = true;
+      try {
+        const type = document.getElementById('new-template').value;
+        const pdf = await PDFLib.PDFDocument.create();
+        const page = pdf.addPage([612, 792]); // US Letter, 8.5 x 11 in
+        const font = await pdf.embedFont(PDFLib.StandardFonts.Helvetica);
+        const bold = await pdf.embedFont(PDFLib.StandardFonts.HelveticaBold);
+        const ink = PDFLib.rgb(0.16, 0.21, 0.3);
+        const light = PDFLib.rgb(0.46, 0.51, 0.58);
+        function line(text, x, y, size = 11, strong = false, color = ink) {
+          page.drawText(text, { x, y, size, font: strong ? bold : font, color, maxWidth: 500 });
+        }
+        if (type === 'letter') {
+          line('YOUR NAME OR BUSINESS', 56, 730, 16, true);
+          line('Street address · City · Province · Postal code', 56, 706, 10, false, light);
+          page.drawLine({ start: {x:56,y:684}, end: {x:556,y:684}, thickness:1, color:ink });
+          line('Date:', 56, 651);
+          line('Recipient name', 56, 609);
+          line('Recipient address', 56, 591);
+          line('Subject: Your letter subject', 56, 548, 12, true);
+          line('Dear Recipient,', 56, 515);
+          line('Write your message here using the Text tool.', 56, 480);
+          line('Sincerely,', 56, 378);
+          line('Your name', 56, 343);
+        } else if (type === 'invoice') {
+          line('INVOICE', 56, 730, 24, true);
+          line('YOUR BUSINESS NAME', 56, 698, 12, true);
+          line('Invoice #:                     Date:', 56, 648);
+          line('Bill to: Customer name / address', 56, 605);
+          page.drawLine({start:{x:56,y:567},end:{x:556,y:567},thickness:1,color:ink});
+          line('Description', 64, 545, 11, true);
+          line('Qty', 354, 545, 11, true);
+          line('Rate', 430, 545, 11, true);
+          line('Amount', 495, 545, 11, true);
+          page.drawLine({start:{x:56,y:530},end:{x:556,y:530},thickness:1,color:light});
+          line('Item or service', 64, 501);
+          page.drawLine({start:{x:56,y:468},end:{x:556,y:468},thickness:1,color:light});
+          line('Total:', 435, 423, 12, true);
+          line('Payment details:', 56, 365, 11, true);
+        }
+        const bytes = await pdf.save();
+        await loadPDF(bytes, type === 'blank' ? 'Untitled.pdf' : type + '-template.pdf');
+      } catch (err) { alert('Unable to create PDF: ' + err.message); }
+      finally { button.disabled = false; }
+    };
+
     document.getElementById('save-pdf').onclick = async () => {
-      if (!pdfBytes || !pdfDoc) return alert('Please open a document first.');
+      if (!pdfDoc) return alert('Open or create a PDF first.');
       const button = document.getElementById('save-pdf');
       button.disabled = true;
       button.textContent = 'Saving PDF...';
       try {
-        const pdf = await PDFLib.PDFDocument.load(pdfBytes);
-        const total = pdf.getPageCount();
-        for (let i = 1; i <= total; i++) {
-          const srcPage = await pdfDoc.getPage(i);
-          const overlay = await makeOverlay(i, srcPage.getViewport({ scale: 2 }));
-          if (!overlay) continue;
-          const target = pdf.getPage(i - 1);
-          const { width, height } = target.getSize();
-          const image = await pdf.embedPng(overlay);
-          const rotation = ((target.getRotation().angle % 360) + 360) % 360;
-          const placements = {
-            0:   { x: 0, y: 0, width, height },
-            90:  { x: 0, y: height, width: height, height: width, rotate: PDFLib.degrees(-90) },
-            180: { x: width, y: height, width, height, rotate: PDFLib.degrees(-180) },
-            270: { x: width, y: 0, width: height, height: width, rotate: PDFLib.degrees(90) }
-          };
-          target.drawImage(image, placements[rotation] || placements[0]);
-        }
-        const bytes = await pdf.save();
-        const blob = new Blob([bytes], { type: 'application/pdf' });
-        const url = URL.createObjectURL(blob);
+        const bytes = await buildEditedPdfBytes();
+        const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
         const link = document.createElement('a');
         link.href = url;
-        link.download = (fileName.replace(/\.[^/.]+$/, '') || 'document') + '-signed.pdf';
+        link.download = (fileName.replace(/\.[^/.]+$/, '') || 'document') + '-edited.pdf';
         document.body.appendChild(link);
         link.click();
         link.remove();
         setTimeout(() => URL.revokeObjectURL(url), 60000);
-      } catch (err) {
-        alert('Unable to save PDF: ' + err.message);
-      } finally {
-        button.disabled = false;
-        button.textContent = '💾 Export PDF';
-      }
+      } catch (err) { alert('Unable to save PDF: ' + err.message); }
+      finally { button.disabled = false; button.textContent = '💾 Export PDF'; }
     };
   </script>
 </body>
