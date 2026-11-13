@@ -1541,10 +1541,12 @@
         if (previewUrl) URL.revokeObjectURL(previewUrl);
         previewUrl = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
         previewDialog.hidden = false;
+        // PDF plug-in iframes do not consistently emit load on every browser.
+        // Enable manual printing as soon as the edited PDF blob is available.
+        previewPrint.disabled = false;
+        previewStatus.textContent = 'PDF ready · ' + pdfDoc.numPages + ' page(s) · use Print above or the PDF viewer toolbar';
         previewFrame.onload = () => {
-          previewStatus.textContent = 'Ready to preview or print · ' + pdfDoc.numPages + ' page(s)';
-          previewPrint.disabled = false;
-          if (printWhenReady) printPreviewDocument();
+          if (printWhenReady && !previewDialog.hidden) printPreviewDocument();
         };
         previewFrame.src = previewUrl + '#toolbar=1';
       } catch (err) {
