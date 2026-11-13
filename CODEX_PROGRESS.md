@@ -141,3 +141,14 @@ See AGENTS.md. Preserve verified work, use small changes, and document checkpoin
 - Main WHC-hosted `https://quotecraftstudio.ca/` has NOT been modified: its separate Cloudflare snippet still needs inserting into WHC's live HTML, with backups and validation, without changing DNS or hosting.
 - The user ultimately wants a tiny Android phone counter showing date and aggregate visits for all websites. Cloudflare GraphQL `rumPageloadEventsAdaptiveGroups` may provide per-day count under appropriate account permissions; confirm free-plan access and proper server-side token security before building the phone UI. Never place a privileged Cloudflare API token in client-side code.
 - No domains, SSL settings, billing, worker deployment or DNS changed.
+
+
+## GitHub-only incremental saving policy — November 13, 2026
+- Owner requested that all QuoteCraft project persistence be kept exclusively in GitHub, with each independent application/project using its own repository.
+- Updated the root `AGENTS.md` to make GitHub the sole permanent source of truth for source files, progress, changelogs, checkpoints, test reports, recovery notes and handoff instructions.
+- Removed the previous fallback that allowed local/PC or downloadable backup copies. If GitHub is unavailable or a push fails, stop and report the blocker rather than saving progress elsewhere.
+- New work must be committed and pushed after each verified section; verify the remote commit before continuing. Temporary local working files may be used only for active editing/testing, not as persistent recovery.
+- Verified `AGENTS.md` by fetching it again from GitHub. Commit: `ab461449d9204795ebb55b44a1cf041df74d66d9`; blob SHA: `2d4da6bf5d9086945bd471c20f41c1beabb6de1a`.
+- Scope: documentation only. No application source, website content, connector, tunnel, deployment configuration, or production service was changed. No application tests were required for this instruction-only update.
+- ChatGPT account Custom Instructions are not writable through the available settings integration. The exact text to add there is supplied separately to the owner.
+- Next: owner may paste the supplied policy into ChatGPT Settings > Personalization > Custom Instructions. For PDF Studio work, locate the correct project repository and continue from its newest verified commit, adding project-specific progress/recovery records there.
