@@ -31,3 +31,21 @@ The starting HTML came from the latest located `pdf-studio.html` in Google Drive
 
 ## Recovery
 Use the GitHub branch `feature/pdf-studio-print-preview-20261113`; its original unmodified source is available at the first commit. Do not merge or publish without passing browser tests.
+
+## 2026-11-13 verification update
+
+### Verified source alignment
+The live page was checked at `https://quotecraftstudio.ca/pdf-studio/`. The updated branch now retains the exact existing live metadata description, inline PWA manifest, relative home link, and privacy/terms links. These are preserved in commit `2cdaf304ca12465418b3cacb71f7d32c1f9e2acd`.
+
+### Successful Chrome smoke tests on Ryzen
+Using temporary files and an isolated headless Chrome profile (deleted after testing):
+- PDF-lib generated and reloaded a valid **blank** one-page PDF (645 bytes).
+- PDF-lib generated and reloaded a valid **business letter** one-page PDF (1,327 bytes).
+- PDF-lib generated and reloaded a valid **simple invoice** one-page PDF (1,328 bytes).
+- Shared export generated a valid PDF.
+- Multi-page export retained two pages, a 90-degree rotated page, and an ink overlay.
+- Preview opened, used a PDF blob URL, enabled its manual Print control and closed correctly.
+- The print-control event handler was verified with a simulated print-window call. **Actual printer dialog or physical printing remains untested**.
+
+### Production deployment
+The code is not yet deployed to WHC; the existing live editor has been left unchanged. The branch is a checkpoint, not a verified public release. To publish, confirm the WHC deployment method and run a real-browser print test. Only replace the PDF Studio app route; do not alter other website files, connectors, tunnels or MCP servers.
