@@ -1622,7 +1622,7 @@
         const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
         const link = document.createElement('a');
         link.href = url;
-        link.download = (fileName.replace(/\.[^/.]+$/, '') || 'document') + '-edited.pdf';
+        link.download = (fileName.replace(/\.[^/.]+$/, '') || 'document') + '-signed.pdf';
         document.body.appendChild(link);
         link.click();
         link.remove();
