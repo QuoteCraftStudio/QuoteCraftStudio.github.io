@@ -2,25 +2,25 @@
 
 These instructions apply to every QuoteCraft Studio programming task unless the owner explicitly changes a requirement. Follow them in this order. Project-specific instructions may add detail but must not silently weaken the recovery and safety rules.
 
-## 0. NON-NEGOTIABLE FIRST PRIORITY: SAVE AND MAKE WORK RECOVERABLE
+## 0. NON-NEGOTIABLE FIRST PRIORITY: SAVE AND MAKE WORK RECOVERABLE IN GITHUB ONLY
 
 **Protect existing work before editing. Save continuously during execution, not merely at the end.** Recovery takes priority over adding features or polishing code.
 
 1. At the start of an existing project, inspect the working directory, Git status (including untracked files), recent commits, current branch, and any recovery notes. Never assume the previous Codex session finished or committed its work.
-2. Before any risky changes, create a separate, timestamped backup or recovery snapshot that includes unfinished code and important configuration, but excludes secrets, credentials, private keys, and unnecessary generated files. Verify the backup can be read.
-3. Divide work into small, independently testable sections. After **each** section: save files, run relevant tests, record results, create a descriptive Git commit for verified work when available, and update the recovery record. Never accumulate many finished sections without saving.
+2. Before risky changes, create a GitHub recovery point first: use a dedicated recovery branch, tag, or checkpoint commit in the same project repository. Preserve unfinished work and important non-secret configuration. Verify the commit or branch exists on GitHub before editing. Do not create backup copies on the PC, Google Drive, or another storage service.
+3. Divide work into small, independently testable sections. After **each** section: save the changed files to the project's GitHub repository, run relevant tests, record results, create a descriptive Git commit, push it to GitHub, verify the remote commit, and update the recovery record. Never accumulate many finished sections without a GitHub checkpoint.
 4. Do **not** wait for a usage-limit warning. Codex may stop without notice. Make durable checkpoints proactively, especially **before** long tool calls, builds, refactors, or deployments. If time or usage appears limited, stop starting new work and prioritize recovery and verification.
-5. Preserve incomplete but valuable changes as a clearly labeled work-in-progress snapshot or separate recovery branch/archive; never merge untested changes into a verified stable release. Record failing tests and unfinished steps.
-6. When an authorized GitHub remote is configured, push suitable verified checkpoints to a **non-production recovery branch**, subject to the owner's existing authorization. Confirm the remote commit exists. Otherwise make a clearly identified downloadable or persistent backup. A temporary Codex workspace or conversation alone is not a sufficient backup.
+5. Preserve incomplete but valuable changes on a clearly labeled GitHub work-in-progress or recovery branch. Never merge untested changes into a verified stable release. Record failing tests and unfinished steps in the repository.
+6. GitHub is the only approved persistent storage for QuoteCraft project work. Push suitable checkpoints to the project's own GitHub repository and verify the remote commit exists. If GitHub is unavailable or a push fails, stop before accumulating further changes and report the exact blocker; do not substitute Google Drive, the PC, or another storage service. A temporary workspace or conversation is never a saved checkpoint.
 7. Never claim that a file, test, backup, commit, push, signing operation, or deployment succeeded without verification. Report missing tools or inaccessible storage as limitations.
 
 ### Required recovery records for substantive or continuing work
 
-Maintain `PROGRESS.md` and `CODEX_RECOVERY.md` in the project root. Create them if absent. Update after each verified section and before stopping, without erasing useful prior history.
+Maintain the project's existing progress file (for example, `PROGRESS.md` or `CODEX_PROGRESS.md`) and `CODEX_RECOVERY.md` in the project repository. Create missing records on GitHub. Update after each verified section and before stopping, without erasing useful prior history.
 
 `PROGRESS.md` must contain: current objective, completed sections, remaining tasks, current blockers, versions, and test results.
 
-`CODEX_RECOVERY.md` must contain: project name and absolute project path; date and current version; Git remote, branch, and last verified commit; backup location and verification result; changed and untracked files that matter; implemented and incomplete features; test commands/results; important architecture decisions; known defects; exact commands to restore, test, and resume; and the **single next action**. Do not put secrets in this document.
+`CODEX_RECOVERY.md` must contain: project name; date and current version; GitHub repository URL, branch, and last verified remote commit; changed files; implemented and incomplete features; test commands/results; important architecture decisions; known defects; exact commands or steps to restore, test, and resume from GitHub; and the **single next action**. Do not put secrets in this document. Do not record local or Drive backup locations.
 
 A new session resuming a substantive project must read the applicable `AGENTS.md`, `PROGRESS.md`, `CODEX_RECOVERY.md`, and relevant Git history **before** making changes. If any are missing, inspect actual files and reconstruct the record without guessing.
 
@@ -55,17 +55,26 @@ For each section: **inspect → plan briefly → back up if risky → edit → t
 
 - Maintain consistent semantic versions where appropriate, build dates, and a meaningful `CHANGELOG.md`.
 - Keep version information consistent in application UI, package metadata, installers, and release archives; do not add redundant version numbers to every source file.
-- Preserve known-good versions and verify release archives can be opened. Record checksums when producing distributable packages.
+- Preserve known-good versions through GitHub commits, tags, and releases. Keep recovery copies and project progress inside the same project's GitHub repository only. Do not use Google Drive or the PC as a persistent backup location. Verify release archives can be opened. Record checksums when producing distributable packages.
 - Verify actual build and install outputs on applicable platforms when possible; distinguish local tests from real-device or live-service verification.
 
 ## 5. Communication and Completion
 
 - Explain important changes and any needed manual steps in simple English.
-- For each checkpoint, report what was changed, what was tested, where it was saved, and what is still unresolved.
+- For each checkpoint, report what was changed, what was tested, the GitHub repository/branch/commit where it was saved, and what is still unresolved.
 - At the end, verify that requirements were implemented, regression checks were run, version/changelog updates are appropriate, and recovery files point to accessible checkpoints.
 - If interrupted or blocked, prioritize a truthful, precise recovery handoff over an unverified claim of completion.
 
 **Operating rule: PRESERVE → ONE SECTION → TEST → SAVE → VERIFY CHECKPOINT → DOCUMENT RECOVERY → NEXT SECTION. Never postpone recovery until a usage limit approaches.**
+
+## 6. GitHub-only persistence and per-project repositories
+
+- Every QuoteCraft application or independent project must have its own GitHub repository. Keep each project's source, progress, changelog, test reports, recovery notes, handoff instructions, and version history in that project's repository.
+- GitHub is the single source of truth and the only permanent storage location for QuoteCraft development. Do not save progress backups, recovery copies, or project archives to Google Drive, OneDrive, the PC, or another storage service.
+- A temporary working directory may be used only when needed to edit or test. It is not a saved checkpoint or backup. Push every completed checkpoint to the correct GitHub repository and verify it remotely before moving on.
+- If a project does not yet have its own repository, identify the correct repository plan and obtain any genuinely necessary approval before creating one. Do not silently mix unrelated applications in one repository.
+- Never commit passwords, API keys, tokens, private keys, signing credentials, or other secrets. GitHub-only storage does not override security requirements.
+- When a new chat or coding session starts, read the repository's AGENTS.md, progress record, recovery record, changelog, and recent Git history before continuing. Resume from the latest verified remote commit; do not repeat completed work.
 
 ---
 
