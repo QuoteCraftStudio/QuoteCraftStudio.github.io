@@ -152,3 +152,15 @@ See AGENTS.md. Preserve verified work, use small changes, and document checkpoin
 - Scope: documentation only. No application source, website content, connector, tunnel, deployment configuration, or production service was changed. No application tests were required for this instruction-only update.
 - ChatGPT account Custom Instructions are not writable through the available settings integration. The exact text to add there is supplied separately to the owner.
 - Next: owner may paste the supplied policy into ChatGPT Settings > Personalization > Custom Instructions. For PDF Studio work, locate the correct project repository and continue from its newest verified commit, adding project-specific progress/recovery records there.
+
+## 2026-11-13 — Isolated QuoteCraft PDF Studio public preview
+
+- Added `pdf-studio-preview/index.html` to the public GitHub Pages site as a separate preview copy from the dedicated private `QuoteCraftStudio/QuoteCraft-PDF-Studio` repository.
+- Preview URL: https://quotecraftstudio.github.io/pdf-studio-preview/
+- The preview copy has a visible PREVIEW COPY badge, a no-index directive, no PWA manifest/install registration, and links back to the main QuoteCraft Studio website for home/privacy/terms.
+- Published commit: `e35fcb41fe6d06c58682de239dc596c319117695`.
+- Verified public HTTP 200, expected title, preview badge and no-index marker. The existing WHC production page `https://quotecraftstudio.ca/pdf-studio/` still returned HTTP 200 with its original 56,189-byte HTML at verification time.
+- Real Chrome smoke test against the exact public preview HTML: PDF.js/PDF-Lib loaded; blank, business-letter and invoice templates generated valid US Letter PDFs; preview PDF blob loaded and Print control enabled; 390px mobile controls rendered; preview closed. **Six functional test groups passed, zero failures.**
+- A recovery branch `recovery/before-pdf-studio-preview-20261113` was created and read back before the new page was committed.
+- Scope: one new preview path only. No existing root page, Idea Hub files, WHC production files, DNS, connector, MCP server or tunnel was changed.
+- This is a preview copy, not the production PDF Studio release. Native printer-dialog testing and WHC production deployment remain separate outstanding steps.
