@@ -164,3 +164,13 @@ See AGENTS.md. Preserve verified work, use small changes, and document checkpoin
 - A recovery branch `recovery/before-pdf-studio-preview-20261113` was created and read back before the new page was committed.
 - Scope: one new preview path only. No existing root page, Idea Hub files, WHC production files, DNS, connector, MCP server or tunnel was changed.
 - This is a preview copy, not the production PDF Studio release. Native printer-dialog testing and WHC production deployment remain separate outstanding steps.
+
+
+## Google AdSense verification snippet — 2026-11-21
+- Added the account's AdSense publisher script for `ca-pub-2323688612396528` to the `<head>` of the GitHub Pages root landing page, `index.html`.
+- Commit: `3703ce0404217f3b576e08320b602099ebf34985`.
+- Verified GitHub file readback and live public page `https://quotecraftstudio.github.io/`: HTTP 200; publisher ID and script both present inside `<head>`.
+- This repository hosts the GitHub Pages Idea Hub landing page. The main `quotecraftstudio.ca` website is hosted separately and is not published from this repository.
+- The main `.ca` site was rechecked and still does not contain the publisher script. The N95 Visual Editor computer connection was unavailable during this task; no WHC or main-domain files were changed.
+- `idea-hub/index.html` retains its restrictive static CSP; it was not weakened or modified. The AdSense script is currently installed on the GitHub Pages root landing page for verification. Additional CSP-aware work is needed before placing the script on the forum application page for ad delivery.
+- No application logic, backend, authentication, privacy, security, or deployment settings were changed. Automated test suite not run; live HTML verification passed.
