@@ -47,3 +47,18 @@
 - Verification: public HTTP 200; preview title/badge/noindex confirmed; existing WHC `/pdf-studio/` returned HTTP 200 and original 56,189-byte page; real Chrome test against the public preview passed all six test groups (blank, letter, invoice, preview/print control, mobile viewport, close).
 - Production editor at WHC remains unchanged. No tunnel, connector, MCP, DNS, root homepage or Idea Hub application file was changed.
 - Next action for the PDF Studio project: manually verify the native print dialog, then separately complete the approved WHC production deployment with a tested rollback.
+
+
+## 2026-11-21 — AdSense verification snippet checkpoint
+- Project: QuoteCraft Studio GitHub Pages / Idea Hub landing site.
+- Repository: https://github.com/QuoteCraftStudio/QuoteCraftStudio.github.io
+- Branch: `main`.
+- AdSense publisher script for `ca-pub-2323688612396528` added to `index.html` inside the document `<head>`.
+- Source commit: `3703ce0404217f3b576e08320b602099ebf34985`.
+- Progress record update: `9e18c169b2cc4ab596f5b8830454b92d71426a64`.
+- Live verification: `https://quotecraftstudio.github.io/` returned HTTP 200 and the exact publisher script was found inside `<head>`.
+- Main `quotecraftstudio.ca` is separately hosted and is not served from this repository. It was checked after the GitHub update; the script is not yet present there. The N95 Visual Editor connector was unavailable (tunnel client not seen), so no WHC files or settings were changed.
+- The live Idea Hub application page `idea-hub/index.html` has a restrictive static Content Security Policy. It was intentionally left unchanged; do not weaken that policy just to load AdSense. Review a CSP-compatible integration before adding ad code to that app page.
+- Changed files: `index.html`, `CODEX_PROGRESS.md`, `CODEX_RECOVERY.md`.
+- Test/verification: GitHub file readback passed; live root page HTTP 200 and code-in-head check passed. Full automated tests not run because this was a narrow static HTML insertion.
+- Next action: In AdSense, select the `quotecraftstudio.github.io` site entry, tick “I've placed the code”, and click Verify. Separately add the same publisher script to the WHC-hosted `https://quotecraftstudio.ca/` homepage through its approved Visual Editor when the N95 Visual Editor connection is available; then verify that domain independently.
